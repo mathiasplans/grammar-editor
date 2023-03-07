@@ -1,0 +1,14 @@
+res://default_env.tres
+res://Control.tscn
+res://Face.gd
+res://Cube.gd
+res://GrammarRule.gd
+res://Geom.gd
+res://Polyhedron.gd
+res://EventPasser.gd
+res://Root.gd
+res://AnchorManager.gd
+res://Selector.gd
+res://CutPlane.gd
+res://GrammarSymbolMaker.gd
+res://Anchor.gd

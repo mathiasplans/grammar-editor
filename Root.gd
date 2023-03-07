@@ -1,4 +1,4 @@
-extends Spatial
+extends Node3D
 
 # Declare member variables here.
 var mouse_down = false
@@ -10,13 +10,13 @@ var leaf_polys = {}
 var symbol_gen = null
 const ROT_SPEED = 0.01
 
-onready var split_tree = $"../../../../Right/Tree"
-onready var compile_button = $"../../../TopPanel/GridContainer/CompileButton"
-onready var test_grammar = $"../../../TopPanel/GridContainer/TestGrammar"
-onready var apply_rule = $"../../../TopPanel/GridContainer/ApplyRule"
-onready var global_cut = $"../../../TopPanel/GridContainer/GlobalCut"
-onready var selector = $Editor/Selector
-onready var anchor_manager = $Editor/AnchorManager
+@onready var split_tree = $"../../../../Right/Tree"
+@onready var compile_button = $"../../../TopPanel/GridContainer/CompileButton"
+@onready var test_grammar = $"../../../TopPanel/GridContainer/TestGrammar"
+@onready var apply_rule = $"../../../TopPanel/GridContainer/ApplyRule"
+@onready var global_cut = $"../../../TopPanel/GridContainer/GlobalCut"
+@onready var selector = $Editor/Selector
+@onready var anchor_manager = $Editor/AnchorManager
 
 const button_visible_tex = preload("res://icons/GuiVisibilityVisible.svg")
 const button_hidden_tex = preload("res://icons/GuiVisibilityHidden.svg")
@@ -44,9 +44,9 @@ func _create_face_instances(poly):
 	
 	for mesh_instance in mesh_instances:
 		# Add collision
-		var mesh_area = Area.new()
-		var mesh_colshape = CollisionShape.new()
-		var colshape = ConcavePolygonShape.new()
+		var mesh_area = Area3D.new()
+		var mesh_colshape = CollisionShape3D.new()
+		var colshape = ConcavePolygonShape3D.new()
 		
 		var polygons = mesh_instance.mesh.get_faces()
 		colshape.set_faces(polygons)
@@ -57,7 +57,7 @@ func _create_face_instances(poly):
 		mesh_instance.add_child(mesh_area)
 		
 		# Name the mesh area
-		mesh_area.name = "Area"
+		mesh_area.name = "Area3D"
 		mesh_colshape.name = "Colshape"
 		
 		# Set needed attributes
@@ -73,17 +73,17 @@ func _add_random_color(mesh_instances):
 		# Set color
 		var col = Color(rng.randf_range(0.5, 1.0), rng.randf_range(0.5, 1.0), rng.randf_range(0.7, 1.0), 1.0)
 		
-		var mat = SpatialMaterial.new()
+		var mat = StandardMaterial3D.new()
 		mat.albedo_color = col
 			
-		mesh_instance.set_surface_material(0, mat)
+		mesh_instance.set_surface_override_material(0, mat)
 
 func _mount_poly(poly):
 	var mesh_instances = self._create_face_instances(poly)
 	self._add_random_color(mesh_instances)
 	
 	for mesh_instance in mesh_instances:
-		mesh_instance.connect("create_cut", self, "_on_create_cut")
+		mesh_instance.connect("create_cut",Callable(self,"_on_create_cut"))
 		$Editor.add_child(mesh_instance)
 		
 	return mesh_instances
@@ -122,8 +122,11 @@ func _ready():
 	self.symbol_gen = GrammarSymbolMaker.new()
 	
 	# Create a selector object. Has to be created before adding any shapes
-	self.selector.connect("polyhedron_selected", self, "_on_polyhedron_selected")
-	self.selector.connect("polyhedron_deselected", self, "_on_polyhedron_deselect")
+	#self.selector.connect("polyhedron_selected",Callable(self,"_on_polyhedron_selected"))
+	#self.selector.connect("polyhedron_deselected",Callable(self,"_on_polyhedron_deselect"))
+	
+	self.selector.polyhedron_selected.connect(_on_polyhedron_selected)
+	self.selector.polyhedron_deselected.connect(_on_polyhedron_deselect)
 	
 	# Create a cube for now
 	var cube = Cube.new(0.4)
@@ -153,16 +156,16 @@ func _ready():
 	self.split_root.set_text(TREE_SYMBOL, seed_sym)
 	
 	# Connect the signals
-	self.split_tree.connect("button_pressed", self, "_on_tree_button")
-	self.split_tree.connect("item_selected", self, "_on_tree_selected")
-	self.split_tree.connect("item_edited", self, "_on_item_edited")
+	self.split_tree.button_clicked.connect(_on_tree_button)
+	self.split_tree.item_selected.connect(_on_tree_selected)
+	self.split_tree.item_edited.connect(_on_item_edited)
 	
-	self.compile_button.connect("pressed", self, "_on_compile_button_press")
-	self.test_grammar.connect("pressed", self, "_on_test_grammar_press")
-	self.apply_rule.connect("pressed", self, "_on_apply_rule_press")
+	self.compile_button.pressed.connect(_on_compile_button_press)
+	self.test_grammar.pressed.connect(_on_test_grammar_press)
+	self.apply_rule.pressed.connect(_on_apply_rule_press)
 	
 	# Anchor manager
-	self.anchor_manager.connect("polyhedron_reordered", self, "_on_poly_reorder")
+	self.anchor_manager.polyhedron_reordered.connect(_on_poly_reorder)
 	
 func _treeitem_set_visibility(item):
 	var tm = item.get_metadata(TREE_META)
@@ -204,10 +207,9 @@ func _treeitem_visible(item, vis):
 	if not tm.epsilon:	
 		_treeitem_set_visibility(item)
 
-		var child = item.get_children()
-		while child != null:
+		var children = item.get_children()
+		for child in children:
 			_treeitem_visible(child, vis)
-			child = child.get_next()
 			
 func _treeitem_epsilonize(item, eps):
 	var tm = item.get_metadata(TREE_META)
@@ -217,7 +219,7 @@ func _treeitem_epsilonize(item, eps):
 	
 	item.set_button(TREE_BUTTONS, BUTTON_EPSILON, epsilon_to_tex[tm.epsilon])
 
-func _on_tree_button(item, column, id):
+func _on_tree_button(item, column, id, _mouse_button_index):
 	var tm = item.get_metadata(TREE_META)
 	if column == TREE_BUTTONS:
 		if id == BUTTON_HIDE:
@@ -231,12 +233,10 @@ func _on_tree_button(item, column, id):
 				var parent = item.get_parent()
 				
 				while parent != null:
-					var child = parent.get_children()
-					while child != null:
+					var children = parent.get_children()
+					for child in children:
 						if child != item:
 							self._treeitem_visible(child, tm.other_hidden)
-							
-						child = child.get_next()
 							
 					item = parent
 					parent = parent.get_parent()
@@ -274,7 +274,7 @@ func _input(event):
 			self.rotate(Vector3.RIGHT, event.relative.y * ROT_SPEED)
 		
 	if event is InputEventKey:
-		if event.pressed and event.scancode == KEY_Z and event.control:
+		if event.pressed and event.keycode == KEY_Z and event.control:
 			if cuts.size() > 0:
 				var cut = cuts.pop_back()
 				cut.queue_free()
@@ -284,11 +284,11 @@ func _input(event):
 func _on_create_cut(cut_plane):
 	self.cuts.push_back(cut_plane)
 	$Editor.add_child(cut_plane)
-	cut_plane.connect("cut_complete", self, "_on_cut_complete")
+	cut_plane.connect("cut_complete",Callable(self,"_on_cut_complete"))
 
 func _add_child_polyhedron(cut, parent_treeitem, cut_plane, text, sym=null):
 	var poly = cut[0]
-	var translation = cut[1]
+	var pos = cut[1]
 	var construction = cut[2]
 	
 	# Set the symbol
@@ -303,7 +303,7 @@ func _add_child_polyhedron(cut, parent_treeitem, cut_plane, text, sym=null):
 	var tm = TreeMeta.new()
 	tm.poly = poly
 	tm.parent_split = cut_plane
-	tm.parent_indices = translation
+	tm.parent_indices = pos
 	tm.constructions = construction
 	
 	_treeitem_setup(new_treeitem, tm, text)
@@ -361,7 +361,7 @@ func _cut_poly(cut_plane, poly):
 
 # On the cut completion, cut the polygon
 func _on_cut_complete(cut_plane):
-	if self.global_cut.pressed:
+	if self.global_cut.button_pressed:
 		var leaves = self.leaf_polys.keys().duplicate()
 		for leaf in leaves:
 			self._cut_poly(cut_plane, leaf)		
@@ -374,7 +374,7 @@ func _on_cut_complete(cut_plane):
 	
 	self.compile_button.icon = self.not_compiled_icon
 
-# The goal is to unravel the tree, converting all the translation
+# The goal is to unravel the tree, converting all the position
 # and consturction indices into a global index space.
 # 
 # We know the original shape symbol, which is required for the creation of
@@ -386,7 +386,7 @@ func _on_cut_complete(cut_plane):
 #  2. Translate the translations and constructions indices to global indices
 #    - if an index does not exist, create it (GrammarRule::add_*_vertex)
 #    - this new index should also be added to the global mapper
-#  3. Repeat on the child, with parents global indices as the base for the translation
+#  3. Repeat on the child, with parents global indices as the base for the position
 #  4. At leaves, add productions
 func _get_rule(item, parent_global_indices, rule_object):
 	var tm = item.get_metadata(TREE_META)
@@ -395,21 +395,18 @@ func _get_rule(item, parent_global_indices, rule_object):
 		return
 		
 	# Get the rotation
-	var rotation = []
+	var vert_rotation = []
 	for i in tm.poly.vertices.size():
-		rotation.push_back(i)
+		vert_rotation.push_back(i)
 		
 	for rot in tm.rotations:
 		var new_rotation = []
 	
 		for new_i in rot.size():
 			var old_i = rot[new_i]
-			new_rotation.push_back(rotation[old_i])
+			new_rotation.push_back(vert_rotation[old_i])
 			
-		rotation = new_rotation
-		
-	# Apply rotation to parent indices
-	var rotated_pgi = parent_global_indices.duplicate()
+		vert_rotation = new_rotation
 	
 	# Get the global indices of the local poly
 	var local_to_global = []
@@ -430,13 +427,13 @@ func _get_rule(item, parent_global_indices, rule_object):
 	# Rotate the local vertices
 	var rotated_local_to_global = []
 	rotated_local_to_global.resize(local_to_global.size())
-	Polyhedron._place(rotated_local_to_global, local_to_global, rotation)
+	Polyhedron._place(rotated_local_to_global, local_to_global, vert_rotation)
 	
 	# Recursion step
-	var child = item.get_children()
+	var children = item.get_children()
 	
 	# Leaf case
-	if child == null:
+	if children.size() == 0:
 		# Get the symbol
 		var sym = tm.poly.symbol
 		
@@ -449,9 +446,8 @@ func _get_rule(item, parent_global_indices, rule_object):
 	
 	# Call for each child
 	else:
-		while child != null:
+		for child in children:
 			_get_rule(child, rotated_local_to_global, rule_object)
-			child = child.get_next()
 	
 func get_rule(tree):
 	var root_item = tree.get_root()
@@ -488,7 +484,7 @@ func _add_terminal(terminal_shape):
 	var _meshes = terminal_shape.get_meshes()
 	var mesh_instances = []
 	for mesh in _meshes:
-		var new_inst = MeshInstance.new()
+		var new_inst = MeshInstance3D.new()
 		new_inst.mesh = mesh
 		mesh_instances.push_back(new_inst)
 		
@@ -520,7 +516,7 @@ func _refresh_shapes():
 		var _meshes = shape.get_meshes()
 		var mesh_instances = []
 		for mesh in _meshes:
-			var new_inst = MeshInstance.new()
+			var new_inst = MeshInstance3D.new()
 			new_inst.mesh = mesh
 			mesh_instances.push_back(new_inst)
 			

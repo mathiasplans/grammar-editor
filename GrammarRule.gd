@@ -7,7 +7,7 @@ class VirtualVertex:
 	
 	enum {FIRST, INTERPOLATE}
 	
-	func _init(_from, _to):
+	func _init(_from,_to):
 		self.from = _from
 		self.to = _to
 		
@@ -17,7 +17,8 @@ class VirtualVertex:
 class FirstVertex:
 	extends VirtualVertex
 	
-	func _init(_from).(_from, -1):
+	func _init(_from):
+		super(_from, -1)
 		pass
 		
 	func create_vertex(vertex_array):
@@ -27,7 +28,8 @@ class InterpolateVertex:
 	extends VirtualVertex
 	var coef
 	
-	func _init(_from, _to, _coef).(_from, _to):
+	func _init(_from, _to, _coef):
+		super(_from, _to)
 		self.coef = _coef
 		
 	func create_vertex(vertex_array):
@@ -83,12 +85,12 @@ func fulfill(shape):
 	# Create children
 	var children = []
 	for i in self.product_symbols.size():
-		var symbol = self.product_symbols[i]
+		var sym = self.product_symbols[i]
 		var indices = self.product_vertices[i]
 		
-		var selection = _select_vertices(va, indices)
+		var selection = GrammarRule._select_vertices(va, indices)
 		
-		var new_shape = GrammarShape.new(symbol, selection)
+		var new_shape = GrammarShape.new(sym, selection)
 		children.push_back(new_shape)
 
 	return children

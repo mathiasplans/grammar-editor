@@ -6,16 +6,16 @@ static func create_quad(corners):
 	var normal = Normals.calculate_normal(corners)
 	var normals = [normal, normal, normal, normal]
 	var uvs = [Vector2(0.0, 0.0), Vector2(1.0, 0.0), Vector2(1.0, 1.0), Vector2(0.0, 1.0)]
-	var colors = [Color.white, Color.white, Color.white, Color.white]
+	var colors = [Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE]
 	var indices = [0, 1, 2, 2, 3, 0]
 	
 	var arrays = []
 	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = PoolVector3Array(verts)
-	arrays[Mesh.ARRAY_NORMAL] = PoolVector3Array(normals)
-	arrays[Mesh.ARRAY_TEX_UV] = PoolVector2Array(uvs)
-	arrays[Mesh.ARRAY_COLOR] = PoolColorArray(colors)
-	arrays[Mesh.ARRAY_INDEX] = PoolIntArray(indices)
+	arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array(verts)
+	arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array(normals)
+	arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array(uvs)
+	arrays[Mesh.ARRAY_COLOR] = PackedColorArray(colors)
+	arrays[Mesh.ARRAY_INDEX] = PackedInt32Array(indices)
 	
 	# Turn the quad into a mesh
 	var face = ArrayMesh.new()
@@ -86,12 +86,12 @@ static func brep_to_meshes(points, faces, uvs=null, st=null):
 			var i1 = face[i + 1]
 			var i2 = face[i + 2]
 			
-			st.add_normal(normal)
-			st.add_uv(uv[0])
+			st.set_normal(normal)
+			st.set_uv(uv[0])	
 			st.add_vertex(points[i0])
-			st.add_uv(uv[i + 1])
+			st.set_uv(uv[i + 1])
 			st.add_vertex(points[i1])
-			st.add_uv(uv[i + 2])
+			st.set_uv(uv[i + 2])
 			st.add_vertex(points[i2])
 			
 		if st_null:

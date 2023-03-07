@@ -1,4 +1,4 @@
-extends MeshInstance
+extends MeshInstance3D
 class_name CutPlane
 signal cut_complete(cut_plane)
 
@@ -22,13 +22,13 @@ static func _set_mat(mesh_inst, double_alpha=false):
 	if double_alpha:
 		alpha = alpha / 2
 	
-	mesh_inst.material_override = SpatialMaterial.new()
-	mesh_inst.material_override.params_cull_mode = SpatialMaterial.CULL_DISABLED
+	mesh_inst.material_override = StandardMaterial3D.new()
+	mesh_inst.material_override.params_cull_mode = StandardMaterial3D.CULL_DISABLED
 	mesh_inst.material_override.albedo_color = Color(1.0, 0.5, 0.0, alpha)
 	mesh_inst.material_override.flags_transparent = true
 
 # Constructor
-func _init(hull, _poly):
+func _init(hull,_poly):
 	self.normal = Geom.calculate_normal(hull)
 	self.poly = _poly
 	
@@ -41,15 +41,15 @@ func _init(hull, _poly):
 		hull_vec.push_back(hp - self.center)
 		
 	# Get a modified hull that is a bit bigger
-	var scale = 1.4
+	var plane_scale = 1.4
 	var new_hull = []
 	for i in hull.size():
-		new_hull.push_back(hull[i] + (scale - 1) * hull_vec[i])
+		new_hull.push_back(hull[i] + (plane_scale - 1) * hull_vec[i])
 		
 	self.mesh = Geom.convexhull_to_mesh(new_hull)
 	
 	## Add a new material
-	_set_mat(self)
+	CutPlane._set_mat(self)
 
 func _input(event):
 	if event is InputEventMouseMotion:
@@ -66,13 +66,13 @@ func _input(event):
 		if event.pressed:
 			if not locked:
 				locked = true
-				self.fixed_translation = self.translation
+				self.fixed_translation = self.position
 				
 				# Create a copy
-				var copy_mesh = MeshInstance.new()
+				var copy_mesh = MeshInstance3D.new()
 				copy_mesh.mesh = self.mesh
-				_set_mat(copy_mesh, true)
-				_set_mat(self, true)
+				CutPlane._set_mat(copy_mesh, true)
+				CutPlane._set_mat(self, true)
 												
 				# Translate the plane a bit to prevent z-fight
 				var z_fight_mag = 0.001
@@ -81,7 +81,7 @@ func _input(event):
 				
 				self.add_child(copy_mesh)
 				
-				emit_signal("cut_complete", self)
+				self.cut_complete.emit(self)
 				
 				# Some receiver set the flag to delete the object
 				if self.delete:

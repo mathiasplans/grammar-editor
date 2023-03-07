@@ -47,8 +47,8 @@ func _min_cycle(a):
 		return a
 		
 	# Get the slices before and after the smallest element
-	var before = a.slice(0, minel_i - 1)	
-	var after = a.slice(minel_i, a.size() - 1)
+	var before = a.slice(0, minel_i)	
+	var after = a.slice(minel_i, a.size())
 	
 	# Cycle the array
 	after.append_array(before)
@@ -168,7 +168,7 @@ func complete():
 	self._forget_face_metadata()
 	
 	# Order the faces in a strict way
-	self.faces.sort_custom(ArraySorter, "radix_sort")
+	self.faces.sort_custom(Callable(ArraySorter,"radix_sort"))
 	
 	# And now recompile the face metadata
 	for face_i in self.faces.size():
@@ -236,7 +236,7 @@ func _introduce_cut(plane_point, plane_normal):
 	for key in points.keys():
 		var val = points[key]
 		var invkey = key.duplicate()
-		invkey.invert()
+		invkey.reverse()
 		
 		var i
 		
@@ -276,21 +276,21 @@ func _introduce_cut(plane_point, plane_normal):
 			
 			# Add the cut
 			if points.has([vi, next_vi]):
-				var cut = points[[vi, next_vi]]
+				var cut_plane = points[[vi, next_vi]]
 				cuts += 1
 				
 				trace_i ^= 1
 				
-				trace[0].push_back(cut[2])
-				trace[1].push_back(cut[2])
+				trace[0].push_back(cut_plane[2])
+				trace[1].push_back(cut_plane[2])
 				
 				# Remember the edges that cut the original polyhedron
 				if cuts == 2:
-					dup.cut_edges[other].push_back(cut[2])
-					dup.cut_edges[cut[2]].push_back(other)
+					dup.cut_edges[other].push_back(cut_plane[2])
+					dup.cut_edges[cut_plane[2]].push_back(other)
 					
 				else:
-					other = cut[2]
+					other = cut_plane[2]
 					
 		# Add new faces
 		dup.add_face(trace[0])
@@ -339,7 +339,7 @@ func get_rim():
 				vertex_path.push_back(other)
 				break
 				
-	vertex_path.invert()
+	vertex_path.reverse()
 	return vertex_path
 	
 func add_missing_faces():
@@ -357,17 +357,17 @@ func subpoly(face_array):
 			unique_indices[v] = 0
 			
 	# Get the sub-set of vertices which preserve the former order
-	var translation = []
+	var position = []
 	var inverse_translation = {}
 	for i in self.vertices.size():
 		if unique_indices.has(i):
-			inverse_translation[i] = translation.size()
-			translation.push_back(i)
+			inverse_translation[i] = position.size()
+			position.push_back(i)
 
 	# Create a new polyhedron
 	var newpoly = self.get_script().new()
 	
-	for i in translation:
+	for i in position:
 		newpoly.add_vertex(self.vertices[i])
 		
 	# Transfer the faces to the new polyhedron
@@ -379,7 +379,7 @@ func subpoly(face_array):
 			
 		newpoly.add_face(translated_face)
 		
-	return [newpoly, translation, inverse_translation]
+	return [newpoly, position, inverse_translation]
 	
 static func _place(insert_array, from, map):
 	for i in insert_array.size():
@@ -399,7 +399,7 @@ func _finalize_cut(cut_poly, face_partition, construction):
 	# Now transform current polyhedron into two child polyhedri
 	var poly_and_translation = cut_poly.subpoly(face_partition)
 	var poly = poly_and_translation[0]
-	var translation = poly_and_translation[1]
+	var position = poly_and_translation[1]
 	
 	# Fill in the gaps
 	poly.add_missing_faces()
@@ -407,10 +407,10 @@ func _finalize_cut(cut_poly, face_partition, construction):
 	
 	var anchor_order = poly.order_by_anchor(0, 1)
 	
-	# Translate the translation by the anchor order
+	# Translate the position by the anchor order
 	var new_translation = []
-	new_translation.resize(translation.size())
-	_place(new_translation, translation, anchor_order)
+	new_translation.resize(position.size())
+	Polyhedron._place(new_translation, position, anchor_order)
 	
 	return [poly, new_translation, construction]
 
@@ -582,7 +582,7 @@ static func _invert_map(map):
 
 func _change_order(vertex_order, invert=false):
 	var vert_map = vertex_order
-	var inverse_vert_map = _invert_map(vert_map)
+	var inverse_vert_map = Polyhedron._invert_map(vert_map)
 
 	# Reverse ordering
 	if invert:
@@ -593,7 +593,7 @@ func _change_order(vertex_order, invert=false):
 	# Change the ordering of vertices
 	var new_vertices = []
 	new_vertices.resize(self.vertices.size())
-	_place(new_vertices, self.vertices, vert_map)
+	Polyhedron._place(new_vertices, self.vertices, vert_map)
 	
 	# Use new ordering in the data structures
 	var new_directed = {}

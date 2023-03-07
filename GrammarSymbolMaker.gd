@@ -4,9 +4,7 @@ class_name GrammarSymbolMaker
 var symbols = {}
 
 func _poly_to_symbol(poly, _terminal=true):
-	if not poly.is_ordered():
-		assert(false, "The polygon has to be ordered by anchor first before it can be turned into a symbol")
-		return null
+	assert(poly.is_ordered(), "The polygon has to be ordered by anchor first before it can be turned into a symbol")
 	
 	var newsym = GrammarSymbol.new(poly.vertices.size(), poly.faces, _terminal)
 	return newsym

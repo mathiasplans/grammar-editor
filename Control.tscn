@@ -1,113 +1,99 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=7 format=3 uid="uid://b05ly8tkkyqbc"]
 
-[ext_resource path="res://Root.gd" type="Script" id=1]
-[ext_resource path="res://EventPasser.gd" type="Script" id=2]
-[ext_resource path="res://icons/unsynced.png" type="Texture" id=3]
-[ext_resource path="res://Selector.gd" type="Script" id=4]
-[ext_resource path="res://AnchorManager.gd" type="Script" id=5]
+[ext_resource type="Script" path="res://Root.gd" id="1"]
+[ext_resource type="Script" path="res://EventPasser.gd" id="2"]
+[ext_resource type="Texture2D" uid="uid://dgomoto7wxhcc" path="res://icons/unsynced.png" id="3"]
+[ext_resource type="Script" path="res://Selector.gd" id="4"]
+[ext_resource type="Script" path="res://AnchorManager.gd" id="5"]
 
-[sub_resource type="Environment" id=1]
+[sub_resource type="Environment" id="1"]
 background_mode = 1
-background_color = Color( 1, 1, 1, 1 )
-ambient_light_color = Color( 1, 1, 1, 1 )
+background_color = Color(1, 1, 1, 1)
+ambient_light_color = Color(1, 1, 1, 1)
 ambient_light_energy = 0.7
 
 [node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 1
 
 [node name="HSplitContainer" type="HSplitContainer" parent="."]
+custom_minimum_size = Vector2(1024, 600)
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-rect_min_size = Vector2( 1024, 600 )
-mouse_filter = 1
 
 [node name="Left" type="VSplitContainer" parent="HSplitContainer"]
-margin_right = 750.0
-margin_bottom = 600.0
-rect_min_size = Vector2( 750, 0 )
-mouse_filter = 1
+custom_minimum_size = Vector2(750, 0)
+layout_mode = 2
 
 [node name="TopPanel" type="Panel" parent="HSplitContainer/Left"]
-margin_right = 750.0
-margin_bottom = 60.0
-rect_min_size = Vector2( 0, 60 )
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
 mouse_filter = 1
 
 [node name="GridContainer" type="GridContainer" parent="HSplitContainer/Left/TopPanel"]
-margin_right = 742.0
-margin_bottom = 84.0
+layout_mode = 0
+offset_right = 742.0
+offset_bottom = 84.0
 columns = 5
 
 [node name="GlobalCut" type="CheckButton" parent="HSplitContainer/Left/TopPanel/GridContainer"]
-margin_right = 146.0
-margin_bottom = 40.0
+layout_mode = 2
 text = "Global Cut"
 
 [node name="CompileButton" type="Button" parent="HSplitContainer/Left/TopPanel/GridContainer"]
-margin_left = 150.0
-margin_right = 233.0
-margin_bottom = 40.0
+layout_mode = 2
 text = "Compile"
-icon = ExtResource( 3 )
-icon_align = 2
+icon = ExtResource("3")
+icon_alignment = 2
 
 [node name="TestGrammar" type="Button" parent="HSplitContainer/Left/TopPanel/GridContainer"]
-margin_left = 237.0
-margin_right = 276.0
-margin_bottom = 40.0
+layout_mode = 2
 text = "Test"
 
 [node name="ApplyRule" type="Button" parent="HSplitContainer/Left/TopPanel/GridContainer"]
-margin_left = 280.0
-margin_right = 350.0
-margin_bottom = 40.0
+layout_mode = 2
 disabled = true
 text = "New Gen"
 
-[node name="ViewportContainer" type="ViewportContainer" parent="HSplitContainer/Left"]
-margin_top = 72.0
-margin_right = 750.0
-margin_bottom = 600.0
-mouse_filter = 1
+[node name="SubViewportContainer" type="SubViewportContainer" parent="HSplitContainer/Left"]
+layout_mode = 2
 stretch = true
-script = ExtResource( 2 )
+script = ExtResource("2")
 
-[node name="Viewport" type="Viewport" parent="HSplitContainer/Left/ViewportContainer"]
-size = Vector2( 100, 100 )
+[node name="SubViewport" type="SubViewport" parent="HSplitContainer/Left/SubViewportContainer"]
 handle_input_locally = false
-msaa = 2
-render_target_update_mode = 3
 physics_object_picking = true
+size = Vector2i(750, 576)
+render_target_update_mode = 4
 
-[node name="Camera" type="Camera" parent="HSplitContainer/Left/ViewportContainer/Viewport"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.54398 )
-environment = SubResource( 1 )
+[node name="Camera3D" type="Camera3D" parent="HSplitContainer/Left/SubViewportContainer/SubViewport"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.54398)
+environment = SubResource("1")
 
-[node name="Root" type="Spatial" parent="HSplitContainer/Left/ViewportContainer/Viewport"]
-script = ExtResource( 1 )
+[node name="Root" type="Node3D" parent="HSplitContainer/Left/SubViewportContainer/SubViewport"]
+script = ExtResource("1")
 
-[node name="Tester" type="Spatial" parent="HSplitContainer/Left/ViewportContainer/Viewport/Root"]
+[node name="Tester" type="Node3D" parent="HSplitContainer/Left/SubViewportContainer/SubViewport/Root"]
 visible = false
 
-[node name="Editor" type="Spatial" parent="HSplitContainer/Left/ViewportContainer/Viewport/Root"]
+[node name="Editor" type="Node3D" parent="HSplitContainer/Left/SubViewportContainer/SubViewport/Root"]
 
-[node name="Selector" type="Node" parent="HSplitContainer/Left/ViewportContainer/Viewport/Root/Editor"]
-script = ExtResource( 4 )
+[node name="Selector" type="Node" parent="HSplitContainer/Left/SubViewportContainer/SubViewport/Root/Editor"]
+script = ExtResource("4")
 
-[node name="AnchorManager" type="Node" parent="HSplitContainer/Left/ViewportContainer/Viewport/Root/Editor"]
-script = ExtResource( 5 )
+[node name="AnchorManager" type="Node" parent="HSplitContainer/Left/SubViewportContainer/SubViewport/Root/Editor"]
+script = ExtResource("5")
 
-[node name="DirectionalLight" type="DirectionalLight" parent="HSplitContainer/Left/ViewportContainer/Viewport"]
-transform = Transform( 0.656559, 0, 0.754274, 0, 1, 0, -0.754274, 0, 0.656559, 1.85974, 0, 0.65363 )
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="HSplitContainer/Left/SubViewportContainer/SubViewport"]
+transform = Transform3D(0.656559, 0, 0.754274, 0, 1, 0, -0.754274, 0, 0.656559, 1.85974, 0, 0.65363)
 light_energy = 0.3
 
 [node name="Right" type="VSplitContainer" parent="HSplitContainer"]
-margin_left = 762.0
-margin_right = 1024.0
-margin_bottom = 600.0
+layout_mode = 2
 
 [node name="Tree" type="Tree" parent="HSplitContainer/Right"]
-margin_right = 262.0
-margin_bottom = 600.0
+layout_mode = 2

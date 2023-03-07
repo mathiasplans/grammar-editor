@@ -10,7 +10,7 @@ var terminal = true
 var rules = []
 # var rule_weights = []
 
-func _init(_nr_of_verts, _faces, _terminal=true):	
+func _init(_nr_of_verts,_faces,_terminal=true):
 	self.nr_of_vertices = _nr_of_verts
 	self.faces = _faces.duplicate(true)
 	self.terminal = _terminal

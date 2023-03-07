@@ -1,4 +1,4 @@
-extends ViewportContainer
+extends SubViewportContainer
 
 
 # Declare member variables here. Examples:
@@ -15,5 +15,6 @@ func _ready():
 #func _process(delta):
 #	pass
 
-func _gui_input(event):
-	$Viewport.unhandled_input(event)
+func _gui_input(_event):
+	#$SubViewport.unhandled_input(event)
+	pass

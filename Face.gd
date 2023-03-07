@@ -1,4 +1,4 @@
-extends MeshInstance
+extends MeshInstance3D
 class_name Face
 
 signal create_cut(cut_plane)
@@ -16,11 +16,11 @@ var outline
 var normal = null
 var face_i
 
-onready var selector = $"/root/Control/HSplitContainer/Left/ViewportContainer/Viewport/Root/Editor/Selector"
+@onready var selector = $"/root/Control/HSplitContainer/Left/SubViewportContainer/SubViewport/Root/Editor/Selector"
 
 const cut_key = KEY_C
 const cutplane_script = preload("res://CutPlane.gd")
-const shader = preload("res://face.shader")
+const shader = preload("res://face.gdshader")
 
 func create_better_outline(margin):
 	var center = Geom.convex_hull_center(self.hull)
@@ -33,18 +33,18 @@ func create_better_outline(margin):
 		front_fake.push_back(h + margin * to_h + 0.00005 * self.normal)
 		
 	var front = front_fake.duplicate()
-	front.invert()
+	front.reverse()
 	
 	var st = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	st.add_color(Color(0.8, 0.8, 1.0, 1.0))
+	st.set_color(Color(0.8, 0.8, 1.0, 1.0))
 	
 	Geom.convexhull_to_mesh(front, st)
 	Geom.convexhull_to_mesh(back, st)
 	
 	return st.commit()
 
-func _init(_mesh, _poly, _hull_indices, _face_i):
+func _init(_mesh,_poly,_hull_indices,_face_i):
 	self.mesh = _mesh
 	self.poly = _poly
 	self.hull_indices = _hull_indices
@@ -56,12 +56,12 @@ func _init(_mesh, _poly, _hull_indices, _face_i):
 		
 	self.normal = (self.hull[0] - self.hull[1]).cross(self.hull[2] - self.hull[1]).normalized()
 	
-	var marginMat = SpatialMaterial.new()
+	var marginMat = StandardMaterial3D.new()
 	marginMat.albedo_color = Color(0.8, 0.8, 1.0, 1.0)
 	marginMat.flags_unshaded = true
 	
 	var outline_mesh = self.create_better_outline(0.012)
-	self.outline = MeshInstance.new()
+	self.outline = MeshInstance3D.new()
 	self.outline.visible = false
 	self.outline.mesh = outline_mesh
 	self.outline.material_override = marginMat
@@ -73,26 +73,26 @@ func _init(_mesh, _poly, _hull_indices, _face_i):
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	var _con1 = $Area.connect("mouse_entered", self, "_on_area_enter")
-	var _con2 = $Area.connect("mouse_exited", self, "_on_area_exit")
-	var _con3 = $Area.connect("input_event", self, "_on_area_input_event")
+	var _con1 = $Area3D.connect("mouse_entered",Callable(self,"_on_area_enter"))
+	var _con2 = $Area3D.connect("mouse_exited",Callable(self,"_on_area_exit"))
+	var _con3 = $Area3D.connect("input_event",Callable(self,"_on_area_input_event"))
 
 	# Create a new materials
-	howerMaterial = SpatialMaterial.new()
+	howerMaterial = StandardMaterial3D.new()
 	howerMaterial.albedo_color = Color(1.0, 0.0, 0.0, 1.0)
-	#howerMaterial.shader = self.shader
+	#howerMaterial.gdshader = self.gdshader
 	
-	selectedMaterial = SpatialMaterial.new()
+	selectedMaterial = StandardMaterial3D.new()
 	selectedMaterial.albedo_color = Color(0.0, 1.0, 0.0, 1.0)
 	
-	howerselectedMaterial = SpatialMaterial.new()
+	howerselectedMaterial = StandardMaterial3D.new()
 	howerselectedMaterial.albedo_color = Color(0.7, 0.7, 0.2, 1.0)
 	
 func disable_collision():
-	$Area.visible = false
+	$Area3D.visible = false
 	
 func enable_collision():
-	$Area.visible = true
+	$Area3D.visible = true
 	
 func get_color():
 	if self.in_area:
@@ -121,7 +121,7 @@ func deemphasize():
 	
 func select(all_in_poly=false):
 	if all_in_poly:
-		self.get_tree().call_group_flags(SceneTree.GROUP_CALL_REALTIME, self.poly.to_string(), "select")
+		self.get_tree().call_group(self.poly.to_string(), "select")
 		
 	elif not self.selected:
 		self.selected = true
@@ -130,7 +130,7 @@ func select(all_in_poly=false):
 	
 func deselect(all_in_poly=false):
 	if all_in_poly:
-		self.get_tree().call_group_flags(SceneTree.GROUP_CALL_REALTIME, self.poly.to_string(), "deselect")
+		self.get_tree().call_group(self.poly.to_string(), "deselect")
 		
 	elif self.selected:
 		self.selected = false
@@ -154,15 +154,15 @@ func _input(event):
 		# Create a cutting plane from selected face
 		if self.selected:
 			if event.pressed:
-				if self.selector.current_mode == Selector.MODE_FACE and event.scancode == cut_key:
+				if self.selector.current_mode == Selector.Mode.FACE and event.keycode == cut_key:
 					# Make sure that a cutting plane doesn't exist already
 					if not self.cut_plane_exists:
 						var cut_plane = CutPlane.new(self.hull, self.poly)
 						
-						cut_plane.connect("cut_complete", self, "_on_cut_complete")
+						cut_plane.connect("cut_complete",Callable(self,"_on_cut_complete"))
 						
 						self.cut_plane_exists = true
-						emit_signal("create_cut", cut_plane)
+						self.create_cut.emit(cut_plane)
 						
 						self.selector.disable()
 						self.deemphasize()

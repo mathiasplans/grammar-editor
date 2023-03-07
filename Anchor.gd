@@ -1,4 +1,4 @@
-extends MeshInstance
+extends MeshInstance3D
 class_name Anchor
 
 const ab_len = 0.2
@@ -13,7 +13,7 @@ var face_i
 var poly
 var selected
 
-func _init(_ai, _bi, _poly, _face_i):
+func _init(_ai,_bi,_poly,_face_i):
 	self.face_i = _face_i
 	self.poly = _poly
 	
@@ -39,15 +39,15 @@ func _init(_ai, _bi, _poly, _face_i):
 	var v3 = v2 + ac
 	var v4 = v3 - ab
 	
-	var mesh = Geom.convexhull_to_mesh([v1, v2, v3, v4])
+	var anchor_mesh = Geom.convexhull_to_mesh([v1, v2, v3, v4])
 	
-	var mat = SpatialMaterial.new()
+	var mat = StandardMaterial3D.new()
 	mat.albedo_color = unselected_col
 	mat.albedo_texture = anchor_tex
 	mat.flags_transparent = true
-	mat.params_cull_mode = SpatialMaterial.CULL_DISABLED
+	mat.params_cull_mode = StandardMaterial3D.CULL_DISABLED
 	
-	self.mesh = mesh
+	self.mesh = anchor_mesh
 	self.material_override = mat
 
 func apply_inverse_anchor_order(inverse_anchor_order):

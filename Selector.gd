@@ -7,13 +7,13 @@ signal anchor_deselected(anchor)
 signal polyhedron_selected(polyhedron)
 signal polyhedron_deselected(polyhedron)
 
-onready var anchor_manager = $"../AnchorManager"
+@onready var anchor_manager = $"../AnchorManager"
 
 # Different modes and their order
-enum {MODE_NONE, MODE_FACE, MODE_ANCHOR, MODE_POLY, MODE_amount}
+enum Mode {NONE, FACE, ANCHOR, POLY, _amount}
 
 var current = null
-var current_mode = MODE_FACE
+var current_mode : Mode = Mode.FACE
 
 var change_direction = 1
 
@@ -24,10 +24,10 @@ var anchor_move = null
 func _ready():
 	pass
 	
-func _select_none_action(face):
+func _select_none_action(_face):
 	pass
 	
-func _deselect_none_action(face):
+func _deselect_none_action(_face):
 	pass
 	
 func _select_face_action(face):
@@ -38,11 +38,11 @@ func _select_face_action(face):
 		
 	else:	
 		face.select()
-		self.emit_signal("face_selected", face)
+		self.face_selected.emit(face)
 	
 func _deselect_face_action(face):
 	face.deselect()
-	self.emit_signal("face_deselected", face)
+	self.face_deselected.emit(face)
 	
 func _select_anchor_action(face):
 	self.anchor_manager.select(face.poly)
@@ -52,11 +52,11 @@ func _deselect_anchor_action(face):
 	
 func _select_poly_action(face):
 	face.select(true)
-	self.emit_signal("polyhedron_selected", face.poly)
+	self.polyhedron_selected.emit(face.poly)
 	
 func _deselect_poly_action(face):
 	face.deselect(true)
-	self.emit_signal("polyhedron_deselected", face.poly)
+	self.polyhedron_deselected.emit(face.poly)
 	
 const select_action = ["_select_none_action", "_select_face_action", "_select_anchor_action", "_select_poly_action"]
 const deselect_action = ["_deselect_none_action", "_deselect_face_action", "_deselect_anchor_action", "_deselect_poly_action"]
@@ -64,7 +64,7 @@ const deselect_action = ["_deselect_none_action", "_deselect_face_action", "_des
 func _select_action_call():
 	#print(self.current, " selects   ", self.current_mode)
 	if self.current != null:
-		assert(self.current_mode < MODE_amount)
+		assert(self.current_mode < Mode._amount)
 		self.call(self.select_action[self.current_mode], self.current)
 		
 	# End the anchor move procedure
@@ -73,7 +73,7 @@ func _select_action_call():
 func _deselect_action_call():
 	#print(self.current, " deselects ", self.current_mode)
 	if self.current != null:
-		assert(self.current_mode < MODE_amount)
+		assert(self.current_mode < Mode._amount)
 		self.call(self.deselect_action[self.current_mode], self.current)
 
 func select(face):
@@ -84,16 +84,16 @@ func select(face):
 	
 	if face != self.current:
 		self.current = face
-		current_mode = MODE_NONE
+		current_mode = Mode.NONE
 		
 	# Progress current mode
-	self.current_mode += change_direction
+	self.current_mode = (self.current_mode + change_direction) as Mode 
 	
-	if self.current_mode == MODE_ANCHOR and (face.poly.symbol == null or face.poly.original or face.face_i != 0):
-		self.current_mode += change_direction
+	if self.current_mode == Mode.ANCHOR and (face.poly.symbol == null or face.poly.original or face.face_i != 0):
+		self.current_mode = (self.current_mode + change_direction) as Mode 
 		
 	# Overflow
-	self.current_mode = (self.current_mode + MODE_amount) % MODE_amount
+	self.current_mode = ((self.current_mode + Mode._amount) % Mode._amount) as Mode
 	
 	self._select_action_call()
 	
@@ -104,57 +104,57 @@ func _same_mode_poly(face, mode):
 	return self.current != null and face.poly == self.current.poly and mode == self.current_mode
 	
 func select_clear(face=null):
-	if self.enabled and not _same_mode(face, MODE_NONE):
+	if self.enabled and not _same_mode(face, Mode.NONE):
 		self._deselect_action_call()
 		
 		self.current = face
-		current_mode = MODE_NONE
+		current_mode = Mode.NONE
 		
 		self._select_action_call()
 
 func select_face(face):
-	if self.enabled and not _same_mode(face, MODE_FACE):
+	if self.enabled and not _same_mode(face, Mode.FACE):
 		self._deselect_action_call()
 		
 		self.current = face
-		current_mode = MODE_FACE
+		current_mode = Mode.FACE
 		
 		self._select_action_call()
 		
 func select_anchor(face):
-	if self.enabled and not _same_mode(face, MODE_ANCHOR):
+	if self.enabled and not _same_mode(face, Mode.ANCHOR):
 		self._deselect_action_call()
 		
 		self.current = face
-		current_mode = MODE_ANCHOR
+		current_mode = Mode.ANCHOR
 		
 		self._select_action_call()
 	
 func select_poly(face):
-	if self.enabled and not _same_mode_poly(face, MODE_POLY):
+	if self.enabled and not _same_mode_poly(face, Mode.POLY):
 		self._deselect_action_call()
 		
 		self.current = face
-		current_mode = MODE_POLY
+		current_mode = Mode.POLY
 		
 		self._select_action_call()
 		
 func _input(event):
 	if event is InputEventKey:
 		# Clear the selection on escape
-		if event.pressed and event.scancode == KEY_ESCAPE:
+		if event.pressed and event.keycode == KEY_ESCAPE:
 			self.select_clear()
 			
 		# Make the reverse changing possible
-		if event.scancode == KEY_SHIFT:
+		if event.keycode == KEY_SHIFT:
 			if event.pressed:
 				self.change_direction = -1
 				
 			else:
 				self.change_direction = 1
 				
-		if self.current_mode == MODE_ANCHOR:
-			if event.pressed and event.scancode == KEY_COMMA:
+		if self.current_mode == Mode.ANCHOR:
+			if event.pressed and event.keycode == KEY_COMMA:
 				var poly = self.current.poly
 				self.select_clear()
 				self.anchor_manager.rotate_left(poly)
@@ -162,7 +162,7 @@ func _input(event):
 				# Reselect
 				self.select_anchor(poly.get_first_face_obj())
 				
-			elif event.pressed and event.scancode == KEY_PERIOD:
+			elif event.pressed and event.keycode == KEY_PERIOD:
 				var poly = self.current.poly
 				self.select_clear()
 				self.anchor_manager.rotate_right(poly)
@@ -170,7 +170,7 @@ func _input(event):
 				# Reselect
 				self.select_anchor(poly.get_first_face_obj())
 				
-			elif event.pressed and event.scancode == KEY_M:
+			elif event.pressed and event.keycode == KEY_M:
 				self.anchor_move = self.current.poly
 				
 func enable():

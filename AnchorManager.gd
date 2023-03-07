@@ -9,7 +9,7 @@ class AnchorNode:
 
 	var snode
 	
-	func _init(_center, _snode=null):
+	func _init(_center,_snode=null):
 		self.center = _center
 		self.snode = _snode
 		
@@ -26,11 +26,11 @@ class AnchorMeta:
 	
 	var snode
 	
-	func _init(_poly, _sym, a, b):
+	func _init(_poly,_sym,a,b):
 		self.poly = _poly
 		self.sym = _sym
 		
-		self.snode = Spatial.new()
+		self.snode = Node3D.new()
 		
 		# Create all possible anchors
 		for face_i in self.poly.faces.size():
@@ -155,19 +155,19 @@ func add_poly(poly, sym):
 func move_face(poly, face_i):
 	var new_order = self.polymeta[poly].move_face(face_i)
 	if new_order != null:
-		self.emit_signal("polyhedron_reordered", poly, new_order)
+		self.polyhedron_reordered.emit(poly, new_order)
 	return new_order
 
 func rotate_left(poly):
 	var new_order = self.polymeta[poly].rotate_left()
 	if new_order != null:
-		self.emit_signal("polyhedron_reordered", poly, new_order)
+		self.polyhedron_reordered.emit(poly, new_order)
 	return new_order
 	
 func rotate_right(poly):
 	var new_order = self.polymeta[poly].rotate_right()
 	if new_order != null:
-		self.emit_signal("polyhedron_reordered", poly, new_order)
+		self.polyhedron_reordered.emit(poly, new_order)
 	return new_order
 	
 func select(poly):
