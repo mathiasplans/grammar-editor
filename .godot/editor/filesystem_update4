@@ -12,3 +12,5 @@ res://Selector.gd
 res://CutPlane.gd
 res://GrammarSymbolMaker.gd
 res://Anchor.gd
+res://Rule.gd
+res://GrammarShape.gd
