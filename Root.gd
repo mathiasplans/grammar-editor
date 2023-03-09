@@ -10,6 +10,9 @@ var leaf_polys = {}
 var symbol_gen = null
 const ROT_SPEED = 0.01
 
+var rules = []
+@onready var rule = Rule.new()
+
 @onready var split_tree = $"../../../../Right/Tree"
 @onready var compile_button = $"../../../TopPanel/GridContainer/CompileButton"
 @onready var test_grammar = $"../../../TopPanel/GridContainer/TestGrammar"
@@ -90,7 +93,7 @@ func _mount_poly(poly):
 
 func poly_to_meshes(poly):
 	var mesh_instances = self._mount_poly(poly)
-	self.meshes[poly] = mesh_instances
+	self.rule.meshes[poly] = mesh_instances
 	
 class TreeMeta:
 	var poly = null
@@ -119,6 +122,9 @@ static func _treeitem_setup(item, metadata, text):
 	
 # Called when the node enters the scene tree for the first time.
 func _ready():
+	# Temporary
+	self.rule.split_tree = self.split_tree
+	
 	self.symbol_gen = GrammarSymbolMaker.new()
 	
 	# Create a selector object. Has to be created before adding any shapes
@@ -132,7 +138,7 @@ func _ready():
 	var cube = Cube.new(0.4)
 	cube.original = true
 	self.poly_to_meshes(cube)
-	self.leaf_polys[cube] = true
+	self.rule.leaf_polys[cube] = true
 	
 	# Symbol handling
 	cube.order_by_anchor(0, 1)
@@ -140,25 +146,25 @@ func _ready():
 	var sym = self.symbol_gen.from_polyhedron(cube, seed_sym, false)
 	cube.symbol = sym
 	
-	self.split_tree.columns = tree_nr_of_cols
+	self.rule.split_tree.columns = tree_nr_of_cols
 	
-	self.split_root = self.split_tree.create_item()
+	self.rule.split_root = self.rule.split_tree.create_item()
 	var tm = TreeMeta.new()
 	tm.poly = cube
 	
 	for i in sym.nr_of_vertices:
 		tm.parent_indices.push_back(i)
 
-	self.poly_to_treeitem[cube] = self.split_root
+	self.rule.poly_to_treeitem[cube] = self.rule.split_root
 
-	_treeitem_setup(self.split_root, tm, "A")
-	self.split_root.set_editable(TREE_SYMBOL, false)
-	self.split_root.set_text(TREE_SYMBOL, seed_sym)
+	_treeitem_setup(self.rule.split_root, tm, "A")
+	self.rule.split_root.set_editable(TREE_SYMBOL, false)
+	self.rule.split_root.set_text(TREE_SYMBOL, seed_sym)
 	
 	# Connect the signals
-	self.split_tree.button_clicked.connect(_on_tree_button)
-	self.split_tree.item_selected.connect(_on_tree_selected)
-	self.split_tree.item_edited.connect(_on_item_edited)
+	self.rule.split_tree.button_clicked.connect(_on_tree_button)
+	self.rule.split_tree.item_selected.connect(_on_tree_selected)
+	self.rule.split_tree.item_edited.connect(_on_item_edited)
 	
 	self.compile_button.pressed.connect(_on_compile_button_press)
 	self.test_grammar.pressed.connect(_on_test_grammar_press)
@@ -171,7 +177,7 @@ func _treeitem_set_visibility(item):
 	var tm = item.get_metadata(TREE_META)
 	if tm.leaf:
 		var state = tm.hidden
-		for m in self.meshes[tm.poly]:
+		for m in self.rule.meshes[tm.poly]:
 			var t = false
 			if (state == VIS_HIDDEN) or tm.epsilon:
 				m.visible = false
@@ -248,19 +254,19 @@ func _on_tree_button(item, column, id, _mouse_button_index):
 			self._treeitem_epsilonize(item, not tm.epsilon)
 
 func _on_tree_selected():
-	var selected_item = self.split_tree.get_selected()
+	var selected_item = self.rule.split_tree.get_selected()
 	var meta = selected_item.get_metadata(TREE_META)
 	
 	# Get one of the faces
-	var face = self.meshes[meta.poly][0]
+	var face = self.rule.meshes[meta.poly][0]
 	self.selector.select_poly(face)
 	
 func _on_polyhedron_selected(poly):
-	var item = self.poly_to_treeitem[poly]
+	var item = self.rule.poly_to_treeitem[poly]
 	item.select(TREE_TEXT)
 	
 func _on_polyhedron_deselect(poly):
-	var item = self.poly_to_treeitem[poly]
+	var item = self.rule.poly_to_treeitem[poly]
 	item.deselect(TREE_TEXT)
 	
 # Called when an event happens
@@ -275,14 +281,14 @@ func _input(event):
 		
 	if event is InputEventKey:
 		if event.pressed and event.keycode == KEY_Z and event.control:
-			if cuts.size() > 0:
-				var cut = cuts.pop_back()
+			if self.rule.size() > 0:
+				var cut = self.rule.cuts.pop_back()
 				cut.queue_free()
 
 # When a cut has been made, add the cutting plane
 # mesh as a child and connect the 'cut_complete' signal
 func _on_create_cut(cut_plane):
-	self.cuts.push_back(cut_plane)
+	self.rule.cuts.push_back(cut_plane)
 	$Editor.add_child(cut_plane)
 	cut_plane.connect("cut_complete",Callable(self,"_on_cut_complete"))
 
@@ -298,7 +304,7 @@ func _add_child_polyhedron(cut, parent_treeitem, cut_plane, text, sym=null):
 	self.poly_to_meshes(poly)
 	
 	# Add the new polyhedrons and the split to the tree
-	var new_treeitem = self.split_tree.create_item(parent_treeitem)
+	var new_treeitem = self.rule.split_tree.create_item(parent_treeitem)
 	
 	var tm = TreeMeta.new()
 	tm.poly = poly
@@ -308,18 +314,18 @@ func _add_child_polyhedron(cut, parent_treeitem, cut_plane, text, sym=null):
 	
 	_treeitem_setup(new_treeitem, tm, text)
 	
-	self.poly_to_treeitem[poly] = new_treeitem
+	self.rule.poly_to_treeitem[poly] = new_treeitem
 	
 	# Add to the leaf
-	self.leaf_polys[poly] = true
+	self.rule.leaf_polys[poly] = true
 	
 func _retire_poly(poly):
 	if poly != null:
 		# Free the old meshes
-		for m in self.meshes[poly]:
+		for m in self.rule.meshes[poly]:
 			m.queue_free()
 			
-		self.meshes.erase(poly)
+		self.rule.meshes.erase(poly)
 	
 func _cut_poly(cut_plane, poly):
 	var cutdata = poly.cut(cut_plane.point(), cut_plane.normal)
@@ -334,7 +340,7 @@ func _cut_poly(cut_plane, poly):
 	self._retire_poly(poly)
 	
 	# Get the node in the split tree
-	var parent_treeitem = self.poly_to_treeitem[poly]
+	var parent_treeitem = self.rule.poly_to_treeitem[poly]
 	
 	# Register the split
 	var tm = parent_treeitem.get_metadata(TREE_META)
@@ -357,12 +363,12 @@ func _cut_poly(cut_plane, poly):
 	self._add_child_polyhedron(cut2, parent_treeitem, cut_plane, "C")
 
 	# Deactivate
-	self.leaf_polys.erase(poly)
+	self.rule.leaf_polys.erase(poly)
 
 # On the cut completion, cut the polygon
 func _on_cut_complete(cut_plane):
 	if self.global_cut.button_pressed:
-		var leaves = self.leaf_polys.keys().duplicate()
+		var leaves = self.rule.leaf_polys.keys().duplicate()
 		for leaf in leaves:
 			self._cut_poly(cut_plane, leaf)		
 		
@@ -464,12 +470,12 @@ func get_rule(tree):
 	return new_rule
 	
 func _on_compile_button_press():
-	var rule = get_rule(self.split_tree)
+	var grammar_rule = get_rule(self.rule.split_tree)
 	
 	# Add the rule to the root shape
-	var tm = self.split_root.get_metadata(TREE_META)
+	var tm = self.rule.split_root.get_metadata(TREE_META)
 	tm.poly.symbol.rules = [] # Currently only one rule
-	tm.poly.symbol.add_rule(rule)
+	tm.poly.symbol.add_rule(grammar_rule)
 	
 	self.compile_button.icon = self.compiled_icon
 
@@ -529,7 +535,7 @@ func _refresh_shapes():
 # Hide children and 
 func _on_test_grammar_press():
 	if _shapes.size() == 0:
-		var tm = self.split_root.get_metadata(TREE_META)
+		var tm = self.rule.split_root.get_metadata(TREE_META)
 		var root_poly = tm.poly
 		
 		var new_shape = GrammarShape.new(root_poly.symbol, root_poly.vertices)
@@ -563,9 +569,9 @@ func _on_apply_rule_press():
 			continue
 			
 		# Get the rule
-		var rule = shape.symbol.rules[0]
+		var grammar_rule = shape.symbol.rules[0]
 		
-		var shapes = rule.fulfill(shape)
+		var shapes = grammar_rule.fulfill(shape)
 		
 		new_shapes.append_array(shapes)
 		
@@ -575,7 +581,7 @@ func _on_apply_rule_press():
 const _matching_sym_color = Color(0.3, 1, 0.1, 0.05)
 
 func _on_item_edited():
-	var item = self.split_tree.get_edited()
+	var item = self.rule.split_tree.get_edited()
 	var new_text = item.get_text(TREE_SYMBOL)
 	var tm = item.get_metadata(TREE_META)
 
@@ -608,7 +614,7 @@ func _on_poly_reorder(poly, new_order):
 	self.poly_to_meshes(poly)
 	
 	# TODO: add the rotation info to the tree
-	var item = self.poly_to_treeitem[poly]
+	var item = self.rule.poly_to_treeitem[poly]
 	var tm = item.get_metadata(TREE_META)
 	tm.rotations.push_back(new_order)
 	pass

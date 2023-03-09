@@ -224,10 +224,7 @@ func _introduce_cut(plane_point, plane_normal):
 		return [self, {}]
 	
 	# Creat a new polyhedron with the same vertices
-	# We have to use load(..) instead of get_script
-	# because we want to make a polyhedron, not some
-	# inherited class.
-	var dup = load("res://Polyhedron.gd").new()
+	var dup = Polyhedron.new()
 	dup.add_vertices(self.vertices)
 	
 	# Add the cutting points
@@ -365,7 +362,7 @@ func subpoly(face_array):
 			position.push_back(i)
 
 	# Create a new polyhedron
-	var newpoly = self.get_script().new()
+	var newpoly = Polyhedron.new()
 	
 	for i in position:
 		newpoly.add_vertex(self.vertices[i])
@@ -633,7 +630,7 @@ func order_by_anchor(a, b):
 	return anchor_order
 	
 func create_copy(a=0, b=1):
-	var copy = self.get_script().new(self.symbol)
+	var copy = Polyhedron.new(self.symbol)
 	
 	copy.vertices = self.vertices.duplicate(true)
 	copy.directed = self.directed.duplicate(true)
