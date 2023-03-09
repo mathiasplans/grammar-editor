@@ -465,7 +465,6 @@ func _refresh_shapes():
 
 # Fulfill a grammar
 func _on_apply_rule_press():
-	print(\"AAA\")
 	var new_shapes = []
 	for shape in self._shapes:
 		# Beware of terminal symbols
