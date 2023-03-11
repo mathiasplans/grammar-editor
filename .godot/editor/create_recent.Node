@@ -1,1 +1,12 @@
+Node3D
+Button
+Panel
+PanelContainer
+Label
+HBoxContainer
+TabContainer
+VBoxContainer
+VSplitContainer
+GridContainer
+ScrollContainer
 Node

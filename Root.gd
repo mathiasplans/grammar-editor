@@ -1,7 +1,7 @@
 extends Node3D
 
-@onready var test_grammar = $"../../../TopPanel/GridContainer/TestGrammar"
-@onready var apply_rule = $"../../../TopPanel/GridContainer/ApplyRule"
+@onready var test_grammar = %ToolInfo/TestGrammar
+@onready var apply_rule = %ToolInfo/ApplyRule
 
 const ROT_SPEED = 0.01
 var mouse_down = false

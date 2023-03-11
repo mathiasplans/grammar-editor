@@ -24,63 +24,63 @@ var anchor_move = null
 func _ready():
 	pass
 	
-func _select_none_action(_face):
+func _select_none_action(_face, _rule):
 	pass
 	
-func _deselect_none_action(_face):
+func _deselect_none_action(_face, _rule):
 	pass
 	
-func _select_face_action(face):
+func _select_face_action(face, rule):
 	if self.anchor_move != null:
 		var poly = face.poly
 		self.anchor_manager.move_face(poly, face.face_i)
-		self.select_anchor(poly.get_first_face_obj())
+		self.select_anchor(poly.get_first_face_obj(), rule)
 		
 	else:	
 		face.select()
-		self.face_selected.emit(face)
+		self.face_selected.emit(face, rule)
 	
-func _deselect_face_action(face):
+func _deselect_face_action(face, rule):
 	face.deselect()
-	self.face_deselected.emit(face)
+	self.face_deselected.emit(face, rule)
 	
-func _select_anchor_action(face):
-	self.anchor_manager.select(face.poly)
+func _select_anchor_action(face, rule):
+	self.anchor_manager.select(face.poly, rule)
 	
-func _deselect_anchor_action(face):
-	self.anchor_manager.deselect(face.poly)
+func _deselect_anchor_action(face, rule):
+	self.anchor_manager.deselect(face.poly, rule)
 	
-func _select_poly_action(face):
+func _select_poly_action(face, rule):
 	face.select(true)
-	self.polyhedron_selected.emit(face.poly)
+	self.polyhedron_selected.emit(face.poly, rule)
 	
-func _deselect_poly_action(face):
+func _deselect_poly_action(face, rule):
 	face.deselect(true)
-	self.polyhedron_deselected.emit(face.poly)
+	self.polyhedron_deselected.emit(face.poly, rule)
 	
 const select_action = ["_select_none_action", "_select_face_action", "_select_anchor_action", "_select_poly_action"]
 const deselect_action = ["_deselect_none_action", "_deselect_face_action", "_deselect_anchor_action", "_deselect_poly_action"]
 
-func _select_action_call():
+func _select_action_call(rule):
 	#print(self.current, " selects   ", self.current_mode)
 	if self.current != null:
 		assert(self.current_mode < Mode._amount)
-		self.call(self.select_action[self.current_mode], self.current)
+		self.call(self.select_action[self.current_mode], self.current, rule)
 		
 	# End the anchor move procedure
 	self.anchor_move = null
 	
-func _deselect_action_call():
+func _deselect_action_call(rule):
 	#print(self.current, " deselects ", self.current_mode)
 	if self.current != null:
 		assert(self.current_mode < Mode._amount)
-		self.call(self.deselect_action[self.current_mode], self.current)
+		self.call(self.deselect_action[self.current_mode], self.current, rule)
 
-func select(face):
+func select(face, rule=%RuleManager.current_rule):
 	if not self.enabled:
 		return
 		
-	self._deselect_action_call()
+	self._deselect_action_call(rule)
 	
 	if face != self.current:
 		self.current = face
@@ -95,7 +95,7 @@ func select(face):
 	# Overflow
 	self.current_mode = ((self.current_mode + Mode._amount) % Mode._amount) as Mode
 	
-	self._select_action_call()
+	self._select_action_call(rule)
 	
 func _same_mode(face, mode):
 	return face == self.current and mode == self.current_mode
@@ -103,41 +103,41 @@ func _same_mode(face, mode):
 func _same_mode_poly(face, mode):
 	return self.current != null and face.poly == self.current.poly and mode == self.current_mode
 	
-func select_clear(face=null):
+func select_clear(face=null, rule=%RuleManager.current_rule):
 	if self.enabled and not _same_mode(face, Mode.NONE):
-		self._deselect_action_call()
+		self._deselect_action_call(rule)
 		
 		self.current = face
 		current_mode = Mode.NONE
 		
-		self._select_action_call()
+		self._select_action_call(rule)
 
-func select_face(face):
+func select_face(face, rule=%RuleManager.current_rule):
 	if self.enabled and not _same_mode(face, Mode.FACE):
-		self._deselect_action_call()
+		self._deselect_action_call(rule)
 		
 		self.current = face
 		current_mode = Mode.FACE
 		
-		self._select_action_call()
+		self._select_action_call(rule)
 		
-func select_anchor(face):
+func select_anchor(face, rule=%RuleManager.current_rule):
 	if self.enabled and not _same_mode(face, Mode.ANCHOR):
-		self._deselect_action_call()
+		self._deselect_action_call(rule)
 		
 		self.current = face
 		current_mode = Mode.ANCHOR
 		
-		self._select_action_call()
+		self._select_action_call(rule)
 	
-func select_poly(face):
+func select_poly(face, rule=%RuleManager.current_rule):
 	if self.enabled and not _same_mode_poly(face, Mode.POLY):
-		self._deselect_action_call()
+		self._deselect_action_call(rule)
 		
 		self.current = face
 		current_mode = Mode.POLY
 		
-		self._select_action_call()
+		self._select_action_call(rule)
 		
 func _input(event):
 	if event is InputEventKey:

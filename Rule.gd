@@ -24,6 +24,13 @@ func erase_meshes(poly):
 			m.queue_free()
 			
 		self.meshes.erase(poly)
+		
+func get_all_meshes():
+	var all_meshes = []
+	for key in self.meshes.keys():
+		all_meshes.append_array(self.meshes[key])
+		
+	return all_meshes
 	
 func get_treeitem(poly):
 	return self.poly_to_treeitem[poly]

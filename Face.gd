@@ -16,7 +16,7 @@ var outline
 var normal = null
 var face_i
 
-@onready var selector = $"/root/Control/HSplitContainer/Left/SubViewportContainer/SubViewport/Root/Editor/Selector"
+@onready var selector = $"/root/Control/HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport/Root/Editor/Selector"
 
 const cut_key = KEY_C
 const cutplane_script = preload("res://CutPlane.gd")
