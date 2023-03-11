@@ -1,0 +1,76 @@
+[gd_scene load_steps=2 format=3 uid="uid://bwxn2fgngxsns"]
+
+[sub_resource type="GDScript" id="GDScript_jngft"]
+resource_name = "RuleSelectorContainer"
+script/source = "extends PanelContainer
+signal rule_selected(rule_i)
+
+@export var rule_i : int
+@onready var rule_name
+
+func _ready():
+	%ViewRule.button_down.connect(_on_rule_selected)
+	%ViewRule/RuleName.text_submitted.connect(_on_name_change)
+	
+	self.rule_name = \"Rule %d\" % self.rule_i
+	%ViewRule/RuleName.placeholder_text = self.rule_name
+	%ViewRule/RuleName.visible = false
+	
+	%ViewRule.text = self.rule_name
+	
+	# Rename functionality
+	%ToolBar/Rename.button_down.connect(_on_rename_request)
+	
+func _on_rule_selected():
+	self.rule_selected.emit(self.rule_i)
+
+func _on_name_change(new_text):
+	self.rule_name = new_text
+	
+	%ViewRule/RuleName.visible = false
+	%ViewRule.text = self.rule_name
+	
+func _on_rename_request():
+	%ViewRule.text = \"\"
+	
+	%ViewRule/RuleName.visible = true
+	%ViewRule/RuleName.select_all()
+"
+
+[node name="RuleSelector" type="PanelContainer"]
+custom_minimum_size = Vector2(120, 70)
+script = SubResource("GDScript_jngft")
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 2
+
+[node name="VSplit" type="VSplitContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+dragger_visibility = 2
+
+[node name="ToolBar" type="HBoxContainer" parent="Panel/VSplit"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 15)
+layout_mode = 2
+
+[node name="Rename" type="Button" parent="Panel/VSplit/ToolBar"]
+layout_mode = 2
+
+[node name="ViewRule" type="Button" parent="Panel/VSplit"]
+unique_name_in_owner = true
+layout_mode = 2
+flat = true
+
+[node name="RuleName" type="LineEdit" parent="Panel/VSplit/ViewRule"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1

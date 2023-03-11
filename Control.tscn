@@ -6,7 +6,6 @@
 [ext_resource type="Script" path="res://Selector.gd" id="4"]
 [ext_resource type="Script" path="res://AnchorManager.gd" id="5"]
 [ext_resource type="Script" path="res://GrammarSymbolMaker.gd" id="6_j4m57"]
-[ext_resource type="Script" path="res://RuleButton.gd" id="7_0xgl5"]
 
 [sub_resource type="Environment" id="1"]
 background_mode = 1
@@ -37,6 +36,16 @@ func create_rule(shape : GrammarShape):
 	# Tree handling
 	$TreeManager.create_tree(new_rule, shape_poly)
 	
+	self.rules.push_back(new_rule)
+	
+	if self.current_rule == null:
+		self.current_rule = new_rule
+	
+		# Default tree
+		$TreeManager.set_tree(self.current_rule.split_tree)
+		
+		%Editor.draw_rule_initial()
+	
 	return new_rule
 
 func _ready():
@@ -53,16 +62,6 @@ func _ready():
 	
 	# Shape handling
 	self._temp_shape = GrammarShape.new(sym, cube.vertices)
-	
-	self.current_rule = self.create_rule(self._temp_shape)
-	self.rules.push_back(self.current_rule)
-	
-	# TEMP Create another rule
-	var another_rule = self.create_rule(self._temp_shape)
-	self.rules.push_back(another_rule)
-	
-	# Default tree
-	$TreeManager.set_tree(self.current_rule.split_tree)
 
 func set_to_rule(i):
 	var replacement_rule = self.rules[i]
@@ -300,6 +299,9 @@ func _on_tree_selected():
 	
 	# Get one of the faces
 	var face = %RuleManager.current_rule.get_meshes(meta.poly)[0]
+	
+	# Select signal should be omited for the next selection
+	%Editor/Selector.no_select_signal()
 	%Editor/Selector.select_poly(face)
 	
 func _on_polyhedron_selected(poly, rule):
@@ -628,15 +630,13 @@ func poly_to_meshes(poly):
 	var mesh_instances = self._mount_poly(poly)
 	%RuleManager.current_rule.set_meshes(poly, mesh_instances)
 	
-# Called when the node enters the scene tree for the first time.
-func _ready():
-	# Get the initial polygon from the rule
+func draw_rule_initial():
 	var initial_poly = %RuleManager.current_rule.lhs_poly
 	self.poly_to_meshes(initial_poly)
 	
+# Called when the node enters the scene tree for the first time.
+func _ready():
 	self.compile_button.button_down.connect(_on_compile_button_press)
-	#self.test_grammar.pressed.connect(_on_test_grammar_press) # In root
-	#self.apply_rule.pressed.connect(_on_apply_rule_press) # Goes to tester
 	
 	# Anchor manager
 	$AnchorManager.polyhedron_reordered.connect(_on_poly_reorder)
@@ -708,7 +708,7 @@ func _on_cut_complete(cut_plane):
 	
 func _on_compile_button_press():
 	# Grammar rule is created from the tree TODO: don't access it here?
-	var grammar_rule = %RuleManager/TreeManager.get_grammar_rule()
+	var _grammar_rule = %RuleManager/TreeManager.get_grammar_rule()
 	
 	# Add the rule to the symbol
 	#%RuleManager.current_rule.lhs.symbol.add_rule(grammar_rule)
@@ -728,6 +728,10 @@ func _on_poly_reorder(poly, new_order):
 func _on_rule_change(old_rule):
 	$Selector.select_clear(null, old_rule)
 	
+	# This is important, otherwise will crash when trying to select
+	# again
+	old_rule.split_tree.deselect_all()
+	
 	# Remove all children of meshes
 	var children = $Meshes.get_children()
 	for child in children:
@@ -738,8 +742,7 @@ func _on_rule_change(old_rule):
 	
 	# If there are no meshes
 	if all_meshes.size() == 0:
-		var initial_poly = %RuleManager.current_rule.lhs_poly
-		self.poly_to_meshes(initial_poly)
+		self.draw_rule_initial()
 		
 	# Add already existing meshes
 	else:
@@ -747,6 +750,33 @@ func _on_rule_change(old_rule):
 			$Meshes.add_child(mesh)
 	
 	self.compile_button.icon = self.not_compiled_icon
+"
+
+[sub_resource type="GDScript" id="GDScript_1rxvp"]
+resource_name = "NewRule"
+script/source = "extends Button
+
+@onready var rulesel_scene = preload(\"res://RuleSelector.tscn\")
+
+var rule_index_counter = 0
+
+func _pressed():
+	var _new_rule = %RuleManager.create_rule(%RuleManager._temp_shape)
+	
+	var instance = rulesel_scene.instantiate()
+	instance.rule_i = self.rule_index_counter
+	self.rule_index_counter += 1
+	
+	%RuleSelectors.add_child(instance)
+
+	var instance_i = instance.get_index()
+	%RuleSelectors.move_child(instance, instance_i - 1)
+	
+	# Connect signals
+	instance.rule_selected.connect(_on_rule_selected)
+
+func _on_rule_selected(rule_i):
+	%RuleManager.set_to_rule(rule_i)
 "
 
 [sub_resource type="GDScript" id="GDScript_s8l8w"]
@@ -873,18 +903,19 @@ layout_mode = 2
 custom_minimum_size = Vector2(750, 120)
 layout_mode = 2
 
-[node name="GridContainer" type="GridContainer" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer"]
+[node name="RuleSelectors" type="GridContainer" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 columns = 6
 
-[node name="PanelContainer" type="PanelContainer" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/GridContainer"]
+[node name="PanelContainer" type="PanelContainer" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/RuleSelectors"]
 custom_minimum_size = Vector2(120, 70)
 layout_mode = 2
 
-[node name="Panel" type="Panel" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/GridContainer/PanelContainer"]
+[node name="Panel" type="Panel" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/RuleSelectors/PanelContainer"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/GridContainer/PanelContainer/Panel"]
+[node name="Button" type="Button" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/RuleSelectors/PanelContainer/Panel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -894,40 +925,22 @@ grow_vertical = 2
 text = "Seed
 "
 
-[node name="PanelContainer2" type="PanelContainer" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/GridContainer"]
-custom_minimum_size = Vector2(120, 70)
+[node name="NewRuleContainer" type="PanelContainer" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/RuleSelectors"]
+custom_minimum_size = Vector2(70, 70)
 layout_mode = 2
 
-[node name="Panel" type="Panel" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/GridContainer/PanelContainer2"]
+[node name="Panel" type="Panel" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/RuleSelectors/NewRuleContainer"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/GridContainer/PanelContainer2/Panel"]
+[node name="Button" type="Button" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/RuleSelectors/NewRuleContainer/Panel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-text = "First rule"
-script = ExtResource("7_0xgl5")
-
-[node name="PanelContainer3" type="PanelContainer" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/GridContainer"]
-custom_minimum_size = Vector2(120, 70)
-layout_mode = 2
-
-[node name="Panel" type="Panel" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/GridContainer/PanelContainer3"]
-layout_mode = 2
-
-[node name="Button" type="Button" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/GridContainer/PanelContainer3/Panel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-text = "Second rule"
-script = ExtResource("7_0xgl5")
-rule_i = 1
+text = "+"
+script = SubResource("GDScript_1rxvp")
 
 [node name="PanelContainer" type="PanelContainer" parent="HSplitContainer/Left/VBoxContainer"]
 layout_mode = 2

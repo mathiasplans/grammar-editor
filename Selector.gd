@@ -21,6 +21,9 @@ var enabled = true
 
 var anchor_move = null
 
+var nosig_sel = false
+var nosig_desel = false
+
 func _ready():
 	pass
 	
@@ -38,25 +41,39 @@ func _select_face_action(face, rule):
 		
 	else:	
 		face.select()
-		self.face_selected.emit(face, rule)
+		
+		if not self.nosig_sel:
+			self.face_selected.emit(face, rule)
 	
 func _deselect_face_action(face, rule):
 	face.deselect()
-	self.face_deselected.emit(face, rule)
+	
+	if not self.nosig_desel:
+		self.face_deselected.emit(face, rule)
 	
 func _select_anchor_action(face, rule):
 	self.anchor_manager.select(face.poly, rule)
 	
+	if not self.nosig_sel:
+		self.anchor_selected.emit(face, rule)
+	
 func _deselect_anchor_action(face, rule):
 	self.anchor_manager.deselect(face.poly, rule)
 	
+	if not self.nosig_desel:
+		self.anchor_deselected.emit(face, rule)
+	
 func _select_poly_action(face, rule):
 	face.select(true)
-	self.polyhedron_selected.emit(face.poly, rule)
+	
+	if not self.nosig_sel:
+		self.polyhedron_selected.emit(face.poly, rule)
 	
 func _deselect_poly_action(face, rule):
 	face.deselect(true)
-	self.polyhedron_deselected.emit(face.poly, rule)
+	
+	if not self.nosig_desel:
+		self.polyhedron_deselected.emit(face.poly, rule)
 	
 const select_action = ["_select_none_action", "_select_face_action", "_select_anchor_action", "_select_poly_action"]
 const deselect_action = ["_deselect_none_action", "_deselect_face_action", "_deselect_anchor_action", "_deselect_poly_action"]
@@ -69,12 +86,15 @@ func _select_action_call(rule):
 		
 	# End the anchor move procedure
 	self.anchor_move = null
+	self.nosig_sel = false
 	
 func _deselect_action_call(rule):
 	#print(self.current, " deselects ", self.current_mode)
 	if self.current != null:
 		assert(self.current_mode < Mode._amount)
 		self.call(self.deselect_action[self.current_mode], self.current, rule)
+		
+	self.nosig_desel = false
 
 func select(face, rule=%RuleManager.current_rule):
 	if not self.enabled:
@@ -138,6 +158,12 @@ func select_poly(face, rule=%RuleManager.current_rule):
 		current_mode = Mode.POLY
 		
 		self._select_action_call(rule)
+		
+func no_select_signal():
+	self.nosig_sel = true
+	
+func no_deselect_signal():
+	self.nosig_desel = true
 		
 func _input(event):
 	if event is InputEventKey:
