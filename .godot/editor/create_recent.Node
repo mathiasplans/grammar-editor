@@ -1,11 +1,12 @@
-Button
 VSplitContainer
+Panel
+TextureButton
+Button
 HBoxContainer
 VBoxContainer
 LineEdit
 TextEdit
 Node3D
-Panel
 PanelContainer
 Label
 TabContainer

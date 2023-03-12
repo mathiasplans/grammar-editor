@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://b05ly8tkkyqbc"]
+[gd_scene load_steps=15 format=3 uid="uid://b05ly8tkkyqbc"]
 
 [ext_resource type="Script" path="res://Root.gd" id="1"]
 [ext_resource type="Script" path="res://EventPasser.gd" id="2"]
@@ -6,6 +6,32 @@
 [ext_resource type="Script" path="res://Selector.gd" id="4"]
 [ext_resource type="Script" path="res://AnchorManager.gd" id="5"]
 [ext_resource type="Script" path="res://GrammarSymbolMaker.gd" id="6_j4m57"]
+
+[sub_resource type="GDScript" id="GDScript_4jyo7"]
+resource_name = "CompileButton"
+script/source = "extends Button
+
+const compiled_icon = preload(\"res://icons/compiled.png\")
+const not_compiled_icon = preload(\"res://icons/unsynced.png\")
+
+func _ready():
+	%RuleManager.rule_edited.connect(_on_rule_edited)
+	%RuleManager.rule_changed.connect(_on_rule_change)
+	self.icon = self.not_compiled_icon
+
+func _pressed():
+	self.icon = self.compiled_icon
+
+func _on_rule_edited():
+	self.icon = self.not_compiled_icon
+	
+func _on_rule_change(_old_rule, _created):
+	if %RuleManager.is_compiled():
+		self.icon = self.compiled_icon
+		
+	else:
+		self.icon  =self.not_compiled_icon
+"
 
 [sub_resource type="Environment" id="1"]
 background_mode = 1
@@ -18,35 +44,13 @@ resource_name = "RuleManager"
 script/source = "extends Node
 class_name RuleManager
 
-signal rule_changed(old_rule)
+signal rule_changed(old_rule, created)
+signal rule_edited
 
 var _temp_shape
-var rules = []
+var rules = {}
 var current_rule
 var rule_i = 0
-
-func create_rule(shape : GrammarShape):
-	var new_rule = Rule.new()
-	
-	var shape_poly = shape.get_polyhedron()
-		
-	new_rule.lhs = shape
-	new_rule.lhs_poly = shape_poly
-
-	# Tree handling
-	$TreeManager.create_tree(new_rule, shape_poly)
-	
-	self.rules.push_back(new_rule)
-	
-	if self.current_rule == null:
-		self.current_rule = new_rule
-	
-		# Default tree
-		$TreeManager.set_tree(self.current_rule.split_tree)
-		
-		%Editor.draw_rule_initial()
-	
-	return new_rule
 
 func _ready():
 	# Setup for the default rule
@@ -62,6 +66,65 @@ func _ready():
 	
 	# Shape handling
 	self._temp_shape = GrammarShape.new(sym, cube.vertices)
+	
+	# Connect signals
+	$TreeManager.tree_edited.connect(self._edited)
+
+func create_rule(index, shape : GrammarShape):
+	var new_rule = Rule.new(index)
+	
+	var shape_poly = shape.get_polyhedron()
+		
+	new_rule.lhs = shape
+	new_rule.lhs_poly = shape_poly
+
+	# Tree handling
+	$TreeManager.create_tree(new_rule, shape_poly)
+	
+	self.rules[index] = new_rule
+	
+	# Switch to new rule
+	self.set_to_rule(index)
+	
+	return new_rule
+	
+func remove_rule(index):
+	# Get a random other rule
+	var keys = self.rules.keys()
+	
+	if not keys.has(index):
+		return
+		
+	var new_index
+	for key in keys:
+		if key != index:
+			new_index = key
+			break
+	
+	# Change to that rule
+	if new_index != null:
+		self.set_to_rule(new_index)
+		
+	else:
+		self.set_to_no_rule()
+		pass
+		
+	var rule = self.rules[index]
+	
+	# Remove the reference from the symbol
+	self.get_symbol().remove_rule(index)
+	
+	# Free the resources
+	rule.queue_free()
+	self.rules.erase(index)
+	
+func set_to_no_rule():
+	var old_rule = self.current_rule
+	self.current_rule = null
+	self.rule_i = -1
+	$TreeManager.remove_tree()
+	
+	self.rule_changed.emit(old_rule, false)
 
 func set_to_rule(i):
 	var replacement_rule = self.rules[i]
@@ -70,12 +133,110 @@ func set_to_rule(i):
 	self.rule_i = i
 	$TreeManager.set_tree(self.current_rule.split_tree)
 	
-	self.rule_changed.emit(old_rule)
+	self.rule_changed.emit(old_rule, self.current_rule.is_empty())
+	
+func is_compiled():
+	return self.current_rule != null and self.current_rule.compiled
+	
+func _edited():
+	if self.current_rule != null:
+		self.current_rule.compiled = false
+		self.rule_edited.emit()
+	
+func get_lhs():
+	return self.current_rule.lhs
+	
+func get_lhs_poly():
+	return self.current_rule.lhs_poly
+	
+func get_symbol():
+	return self._temp_shape.symbol
+	
+### Wrapper functions for the Tree Manager ###
+
+func add_split(poly, cut_plane):
+	$TreeManager.add_split(poly, cut_plane)
+	self._edited()
+	
+func add_rotation(poly, rotation):
+	$TreeManager.add_rotation(poly, rotation)
+	self._edited()
+	
+func add_branch(cut, parent_treeitem, cut_plane, text, sym):
+	$TreeManager.create_child_item(cut, parent_treeitem, cut_plane, text, sym)
+	self._edited()
+	
+func compile():
+	self.current_rule.compiled = true
+	return $TreeManager.create_grammar_rule(self.current_rule.index)
+	
+### Wrapper functions for the Rule object ###
+
+func set_meshes(poly, mesh_instances):
+	self.current_rule.set_meshes(poly, mesh_instances)
+	
+	for mesh in mesh_instances:
+		self.current_rule.add_child(mesh)
+	
+func get_meshes(poly):
+	return self.current_rule.get_meshes(poly)
+	
+func erase_meshes(poly):
+	for mesh in self.get_meshes(poly):
+		self.current_rule.remove_child(mesh)
+	
+	self.current_rule.erase_meshes(poly)
+		
+func get_all_meshes():
+	return self.current_rule.get_all_meshes()
+	
+func get_treeitem(poly):
+	return self.current_rule.get_treeitem(poly)
+	
+func set_treeitem(poly, item):
+	self.current_rule.set_treeitem(poly, item)
+	
+func set_leafness(poly):
+	self.current_rule.set_leafness(poly)
+	self._edited()
+	
+func remove_leafness(poly):
+	self.current_rule.remove_leafness(poly)
+	self._edited()
+	
+func is_leaf(poly):
+	return self.current_rule.is_leaf(poly)
+	
+func add_cut(cut):
+	self.current_rule.add_cut(cut)
+	self._edited()
+	
+func get_leaf_polys():
+	return self.current_rule.get_leaf_polys()
+
+func add_anchor(poly, anchor):
+	if self.get_anchor(poly) == null:
+		self.current_rule.add_anchor(poly, anchor)
+		self.current_rule.add_child(anchor)
+		self._edited()
+	
+func remove_anchor(poly):
+	var anchor = self.get_anchor(poly)
+	
+	if anchor != null:
+		self.current_rule.remove_anchor(poly)
+		self.current_rule.remove_child(anchor)
+		self._edited()
+	
+func get_anchor(poly):
+	return self.current_rule.get_anchor(poly)
 "
 
 [sub_resource type="GDScript" id="GDScript_xx60u"]
 resource_name = "TreeManager"
 script/source = "extends Node
+
+signal tree_edited
 
 const button_visible_tex = preload(\"res://icons/GuiVisibilityVisible.svg\")
 const button_hidden_tex = preload(\"res://icons/GuiVisibilityHidden.svg\")
@@ -147,16 +308,18 @@ func create_tree(rule, poly):
 
 	_treeitem_setup(rule.split_root, tm, \"A\")
 	
-	# Root has other rules
-	rule.split_root.set_editable(TREE_SYMBOL, false)
-	rule.split_root.set_text(TREE_SYMBOL, \"seed\") # temporary
-	
 	# Connect the signals
 	rule.split_tree.button_clicked.connect(_on_tree_button)
 	rule.split_tree.item_selected.connect(_on_tree_selected)
 	rule.split_tree.item_edited.connect(_on_item_edited)
 
 	return new_tree
+	
+func remove_tree():
+	if self.current_tree != null:
+		%TreeParent.remove_child(self.current_tree)
+		
+	self.current_tree = null
 	
 func set_tree(tree):
 	if tree != null:
@@ -167,7 +330,7 @@ func set_tree(tree):
 		%TreeParent.add_child(self.current_tree)
 	
 func create_child_item(cut, parent_poly, cut_plane, text, sym=null):
-	var parent_treeitem = %RuleManager.current_rule.get_treeitem(parent_poly)
+	var parent_treeitem = %RuleManager.get_treeitem(parent_poly)
 	
 	var poly = cut[0]
 	var pos = cut[1]
@@ -187,12 +350,14 @@ func create_child_item(cut, parent_poly, cut_plane, text, sym=null):
 	
 	_treeitem_setup(new_treeitem, tm, text)
 	
-	%RuleManager.current_rule.set_treeitem(poly, new_treeitem)
-	%RuleManager.current_rule.set_leafness(poly)
+	%RuleManager.set_treeitem(poly, new_treeitem)
+	%RuleManager.set_leafness(poly)
+	
+	self.tree_edited.emit()
 	
 func remove_leafness(poly):
-	%RuleManager.current_rule.remove_leafness(poly)
-	var item = %RuleManager.current_rule.get_treeitem(poly)
+	%RuleManager.remove_leafness(poly)
+	var item = %RuleManager.get_treeitem(poly)
 	
 	var tm = item.get_metadata(TREE_META)
 	tm.leaf = false
@@ -203,21 +368,27 @@ func remove_leafness(poly):
 	# Remove the epsilon button
 	item.set_button_disabled(TREE_BUTTONS, BUTTON_EPSILON, true)
 	
+	self.tree_edited.emit()
+	
 func add_split(poly, split):
-	var item = %RuleManager.current_rule.get_treeitem(poly)
+	var item = %RuleManager.get_treeitem(poly)
 	var tm = item.get_metadata(TREE_META)
 	tm.split = split
 	
+	self.tree_edited.emit()
+	
 func add_rotation(poly, rotation):
-	var item = %RuleManager.current_rule.get_treeitem(poly)
+	var item = %RuleManager.get_treeitem(poly)
 	var tm = item.get_metadata(TREE_META)
 	tm.rotations.push_back(rotation)
+	
+	self.tree_edited.emit()
 
 func _treeitem_set_visibility(item):
 	var tm = item.get_metadata(TREE_META)
 	if tm.leaf:
 		var state = tm.hidden
-		for m in %RuleManager.current_rule.get_meshes(tm.poly):
+		for m in %RuleManager.get_meshes(tm.poly):
 			var t = false
 			if (state == VIS_HIDDEN) or tm.epsilon:
 				m.visible = false
@@ -264,6 +435,8 @@ func _treeitem_epsilonize(item, eps):
 	_treeitem_set_visibility(item)
 	
 	item.set_button(TREE_BUTTONS, BUTTON_EPSILON, epsilon_to_tex[tm.epsilon])
+	
+	self.tree_edited.emit()
 
 func _on_tree_button(item, column, id, _mouse_button_index):
 	var tm = item.get_metadata(TREE_META)
@@ -298,11 +471,15 @@ func _on_tree_selected():
 	var meta = selected_item.get_metadata(TREE_META)
 	
 	# Get one of the faces
-	var face = %RuleManager.current_rule.get_meshes(meta.poly)[0]
+	if %RuleManager.is_leaf(meta.poly):
+		var face = %RuleManager.get_meshes(meta.poly)[0]
 	
-	# Select signal should be omited for the next selection
-	%Editor/Selector.no_select_signal()
-	%Editor/Selector.select_poly(face)
+		# Select signal should be omited for the next selection
+		%Editor/Selector.no_select_signal()
+		%Editor/Selector.select_poly(face)
+		
+	else:
+		pass
 	
 func _on_polyhedron_selected(poly, rule):
 	var item = rule.get_treeitem(poly)
@@ -387,13 +564,15 @@ func _get_grammar_rule(item, parent_global_indices, rule_object):
 		for child in children:
 			_get_grammar_rule(child, rotated_local_to_global, rule_object)
 	
-func get_grammar_rule():
+func create_grammar_rule(index):
+	var symbol = %RuleManager.get_symbol()
+	
 	var root_item = self.current_tree.get_root()
 	var tm = root_item.get_metadata(TREE_META)
-	var new_rule = GrammarRule.new(tm.poly.symbol)
+	var new_rule = GrammarRule.new(index, symbol)
 	
 	var indices = []
-	for i in tm.poly.symbol.nr_of_vertices:
+	for i in symbol.nr_of_vertices:
 		indices.push_back(i)
 	
 	# Populate the rule with construction vertices
@@ -408,22 +587,27 @@ func _on_item_edited():
 	var item = self.current_tree.get_edited()
 	var new_text = item.get_text(TREE_SYMBOL)
 	var tm = item.get_metadata(TREE_META)
+	
+	var old_sym = tm.poly.symbol
 
 	# Does this symbol exist?
 	if %Symbols.symbols.has(new_text):
 		item.set_custom_bg_color(TREE_SYMBOL, _matching_sym_color)
 		var sym = %Symbols.symbols[new_text]
-		tm.poly.symbol = sym
+		print(sym, \" \", old_sym)
+		if sym != old_sym:
+			tm.poly.symbol = sym
+
+			var anchor_node = %Editor/AnchorManager.add_poly(tm.poly, sym)
+			%RuleManager.add_anchor(tm.poly, anchor_node)
 		
-		#
-		var anchor_node = %Editor/AnchorManager.add_poly(tm.poly, sym)
-		%Editor.add_child(anchor_node)
-		
-	else:
+	# Change from a symbol to not symbol
+	elif old_sym != null:
 		item.clear_custom_bg_color(TREE_SYMBOL)
 		tm.poly.symbol = null
 		
 		%Editor/AnchorManager.remove_poly(tm.poly)
+		%RuleManager.remove_anchor(tm.poly)
 "
 
 [sub_resource type="GDScript" id="GDScript_hr8ly"]
@@ -506,32 +690,36 @@ func _refresh_shapes():
 func _on_apply_rule_press():
 	var new_shapes = []
 	for shape in self._shapes:
-		# Beware of terminal symbols
-		var nr_of_rules = shape.symbol.rules.size()
-		if nr_of_rules == 0:
-			self._add_terminal(shape)
-			continue
-			
 		# Get the rule
-		var ri = randi()
-		var grammar_rule = shape.symbol.rules[ri % nr_of_rules]
+		var grammar_rule = shape.symbol.select_rule()
 		
 		var shapes = grammar_rule.fulfill(shape)
 		
 		new_shapes.append_array(shapes)
-		
-	self._shapes = new_shapes
+	
+	# Split the new array between shapes and terminals
+	self._shapes = []
+	for shape in new_shapes:
+		if shape.symbol.is_terminal():
+			self._add_terminal(shape)
+			
+		else:
+			self._shapes.push_back(shape)
+	
 	self._refresh_shapes()
 
 func _notification(what):
 	if what == NOTIFICATION_VISIBILITY_CHANGED:
 		self._on_visibility_changed()
+		
+func _is_inactive():
+	return _shapes.size() == 0 and _terminals.size() == 0
 
 func _on_visibility_changed():
-	if _shapes.size() == 0:
-		var root_poly = %RuleManager.current_rule.lhs_poly
+	if self._is_inactive():
+		var root_poly = %RuleManager.get_lhs_poly()
 		
-		var new_shape = GrammarShape.new(root_poly.symbol, root_poly.vertices)
+		var new_shape = GrammarShape.new(%RuleManager.get_symbol(), root_poly.vertices)
 		self._shapes.push_back(new_shape)
 		
 		self._refresh_shapes()
@@ -550,8 +738,6 @@ func _on_visibility_changed():
 resource_name = "Editor"
 script/source = "extends Node3D
 class_name Editor
-
-@onready var rule = Rule.new()
 
 @onready var compile_button = %ToolInfo/CompileButton
 @onready var global_cut = %ToolInfo/GlobalCut
@@ -573,9 +759,12 @@ enum {VIS_HIDDEN, VIS_XRAY, VIS_VISIBLE, VIS_amount}
 
 var hidden_to_tex = {VIS_HIDDEN: button_hidden_tex, VIS_VISIBLE: button_visible_tex, VIS_XRAY: button_xray_tex}
 var epsilon_to_tex = {true: button_epsilon, false: button_epsilon_not}
-
-func _hidden_button_change(treeitem, tm):
-	treeitem.set_button(TREE_BUTTONS, BUTTON_HIDE, hidden_to_tex[tm.hidden])
+	
+func _update_compile_button():
+	if %RuleManager.get_compiled():
+		self.compile_button.icon = self.compiled_icon
+	else:
+		self.compile_button.icon = self.not_compiled_icon
 
 static func _create_face_instances(poly):
 	var mesh_instances = poly.get_face_objects()
@@ -622,17 +811,23 @@ func _mount_poly(poly):
 	
 	for mesh_instance in mesh_instances:
 		mesh_instance.create_cut.connect(self._on_create_cut)
-		$Meshes.add_child(mesh_instance)
 		
 	return mesh_instances
 
 func poly_to_meshes(poly):
 	var mesh_instances = self._mount_poly(poly)
-	%RuleManager.current_rule.set_meshes(poly, mesh_instances)
+	%RuleManager.set_meshes(poly, mesh_instances)
 	
-func draw_rule_initial():
-	var initial_poly = %RuleManager.current_rule.lhs_poly
-	self.poly_to_meshes(initial_poly)
+func draw_rule():
+	if %RuleManager.current_rule != null:
+		$Meshes.add_child(%RuleManager.current_rule)
+		self.compile_button.disabled = false
+		
+	else:
+		self.compile_button.disabled = true
+	
+func go_blank():
+	self.compile_button.disabled = true
 	
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -642,6 +837,8 @@ func _ready():
 	$AnchorManager.polyhedron_reordered.connect(_on_poly_reorder)
 	
 	%RuleManager.rule_changed.connect(_on_rule_change)
+	
+	self.go_blank()
 	
 # Called when an event happens
 func _input(event):
@@ -654,17 +851,17 @@ func _input(event):
 # mesh as a child and connect the 'cut_complete' signal
 func _on_create_cut(cut_plane):
 	# Register the cut for the shape TODO: do it in cut complete instead
-	%RuleManager.current_rule.add_cut(cut_plane)
+	%RuleManager.add_cut(cut_plane)
 	
 	# Make the cut plane rotate with the poly
-	$Meshes.add_child(cut_plane)
+	%RuleManager.current_rule.add_child(cut_plane)
 	
 	# Subscribe to the cut completion callback
 	cut_plane.cut_complete.connect(_on_cut_complete)
 
 func _add_child_polyhedron(cut, parent_treeitem, cut_plane, text, sym=null):
 	# Update the tree
-	%RuleManager/TreeManager.create_child_item(cut, parent_treeitem, cut_plane, text, sym)
+	%RuleManager.add_branch(cut, parent_treeitem, cut_plane, text, sym)
 	
 	# Add new meshes
 	var new_poly = cut[0]
@@ -680,11 +877,11 @@ func _cut_poly(cut_plane, poly):
 		return
 
 	# Free the old meshes
-	%RuleManager.current_rule.erase_meshes(poly)
-	%RuleManager.current_rule.remove_leafness(poly)
+	%RuleManager.erase_meshes(poly)
+	%RuleManager.remove_leafness(poly)
 	
 	if cut_plane.poly == poly:
-		%RuleManager/TreeManager.add_split(poly, cut_plane)
+		%RuleManager.add_split(poly, cut_plane)
 
 	# Handle new polyhedrons
 	var cut1 = cutdata[0]
@@ -696,7 +893,7 @@ func _cut_poly(cut_plane, poly):
 # On the cut completion, cut the polygon
 func _on_cut_complete(cut_plane):
 	if self.global_cut.button_pressed:
-		var leaves = %RuleManager.current_rule.get_leaf_polys().duplicate()
+		var leaves = %RuleManager.get_leaf_polys().duplicate()
 		for leaf in leaves:
 			self._cut_poly(cut_plane, leaf)		
 		
@@ -707,49 +904,37 @@ func _on_cut_complete(cut_plane):
 	cut_plane.visible = false
 	
 func _on_compile_button_press():
-	# Grammar rule is created from the tree TODO: don't access it here?
-	var _grammar_rule = %RuleManager/TreeManager.get_grammar_rule()
-	
-	# Add the rule to the symbol
-	#%RuleManager.current_rule.lhs.symbol.add_rule(grammar_rule)
-	
-	self.compile_button.icon = self.compiled_icon
+	var _grammar_rule = %RuleManager.compile()
 
 func _on_poly_reorder(poly, new_order):
 	# Remove old meshes
-	%RuleManager.current_rule.erase_meshes(poly)
+	%RuleManager.erase_meshes(poly)
 	
 	# Add new meshes
 	self.poly_to_meshes(poly)
 	
 	# TODO: add the rotation info to the tree
-	%RuleManager/TreeManager.add_rotation(poly, new_order)
-
-func _on_rule_change(old_rule):
-	$Selector.select_clear(null, old_rule)
+	%RuleManager.add_rotation(poly, new_order)
 	
-	# This is important, otherwise will crash when trying to select
-	# again
-	old_rule.split_tree.deselect_all()
-	
-	# Remove all children of meshes
-	var children = $Meshes.get_children()
-	for child in children:
-		$Meshes.remove_child(child)
-	
-	# Add new meshes
-	var all_meshes = %RuleManager.current_rule.get_all_meshes()
-	
-	# If there are no meshes
-	if all_meshes.size() == 0:
-		self.draw_rule_initial()
+func _on_rule_change(old_rule, created):
+	# Orphan the old rule, if it exists
+	if old_rule != null:
+		$Selector.select_clear(null, old_rule)
 		
-	# Add already existing meshes
-	else:
-		for mesh in all_meshes:
-			$Meshes.add_child(mesh)
+		# This is important, otherwise will crash when trying to select
+		# again
+		old_rule.split_tree.deselect_all()
+		
+		# Remove all children of meshes
+		$Meshes.remove_child(old_rule)
 	
-	self.compile_button.icon = self.not_compiled_icon
+	# Create new meshes if the rule is new
+	if created:
+		var initial_poly = %RuleManager.get_lhs_poly()
+		self.poly_to_meshes(initial_poly)
+
+	# Add new meshes
+	self.draw_rule()
 "
 
 [sub_resource type="GDScript" id="GDScript_1rxvp"]
@@ -759,13 +944,13 @@ script/source = "extends Button
 @onready var rulesel_scene = preload(\"res://RuleSelector.tscn\")
 
 var rule_index_counter = 0
-
-func _pressed():
-	var _new_rule = %RuleManager.create_rule(%RuleManager._temp_shape)
 	
+func _pressed():
 	var instance = rulesel_scene.instantiate()
 	instance.rule_i = self.rule_index_counter
 	self.rule_index_counter += 1
+	
+	var _new_rule = %RuleManager.create_rule(instance.rule_i, %RuleManager._temp_shape)
 	
 	%RuleSelectors.add_child(instance)
 
@@ -774,9 +959,13 @@ func _pressed():
 	
 	# Connect signals
 	instance.rule_selected.connect(_on_rule_selected)
+	instance.rule_deleted.connect(_on_rule_deleted)
 
 func _on_rule_selected(rule_i):
 	%RuleManager.set_to_rule(rule_i)
+	
+func _on_rule_deleted(rule_i):
+	%RuleManager.remove_rule(rule_i)
 "
 
 [sub_resource type="GDScript" id="GDScript_s8l8w"]
@@ -832,6 +1021,7 @@ layout_mode = 2
 text = "Compile"
 icon = ExtResource("3")
 icon_alignment = 2
+script = SubResource("GDScript_4jyo7")
 
 [node name="TestGrammar" type="Button" parent="HSplitContainer/Left/RuleEditor/TopPanel/ToolInfo"]
 layout_mode = 2
@@ -851,7 +1041,7 @@ script = ExtResource("2")
 [node name="SubViewport" type="SubViewport" parent="HSplitContainer/Left/RuleEditor/SubViewportContainer"]
 handle_input_locally = false
 physics_object_picking = true
-size = Vector2i(840, 378)
+size = Vector2i(840, 382)
 render_target_update_mode = 4
 
 [node name="Camera3D" type="Camera3D" parent="HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport"]
@@ -892,64 +1082,50 @@ script = ExtResource("6_j4m57")
 transform = Transform3D(0.656559, 0, 0.754274, 0, 1, 0, -0.754274, 0, 0.656559, 1.85974, 0, 0.65363)
 light_energy = 0.3
 
-[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/Left"]
+[node name="VSplitContainer" type="VSplitContainer" parent="HSplitContainer/Left"]
 layout_mode = 2
+dragger_visibility = 2
 
-[node name="Explorer" type="TabContainer" parent="HSplitContainer/Left/VBoxContainer"]
+[node name="Explorer" type="TabContainer" parent="HSplitContainer/Left/VSplitContainer"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 3
 
-[node name="RulesContainer" type="ScrollContainer" parent="HSplitContainer/Left/VBoxContainer/Explorer"]
+[node name="RulesContainer" type="ScrollContainer" parent="HSplitContainer/Left/VSplitContainer/Explorer"]
 custom_minimum_size = Vector2(750, 120)
 layout_mode = 2
 
-[node name="RuleSelectors" type="GridContainer" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer"]
+[node name="RuleSelectors" type="GridContainer" parent="HSplitContainer/Left/VSplitContainer/Explorer/RulesContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 columns = 6
 
-[node name="PanelContainer" type="PanelContainer" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/RuleSelectors"]
+[node name="PanelContainer" type="PanelContainer" parent="HSplitContainer/Left/VSplitContainer/Explorer/RulesContainer/RuleSelectors"]
 custom_minimum_size = Vector2(120, 70)
 layout_mode = 2
 
-[node name="Panel" type="Panel" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/RuleSelectors/PanelContainer"]
+[node name="Button" type="Button" parent="HSplitContainer/Left/VSplitContainer/Explorer/RulesContainer/RuleSelectors/PanelContainer"]
 layout_mode = 2
-
-[node name="Button" type="Button" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/RuleSelectors/PanelContainer/Panel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 text = "Seed
 "
 
-[node name="NewRuleContainer" type="PanelContainer" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/RuleSelectors"]
+[node name="NewRuleContainer" type="PanelContainer" parent="HSplitContainer/Left/VSplitContainer/Explorer/RulesContainer/RuleSelectors"]
 custom_minimum_size = Vector2(70, 70)
 layout_mode = 2
 
-[node name="Panel" type="Panel" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/RuleSelectors/NewRuleContainer"]
+[node name="Button" type="Button" parent="HSplitContainer/Left/VSplitContainer/Explorer/RulesContainer/RuleSelectors/NewRuleContainer"]
 layout_mode = 2
-
-[node name="Button" type="Button" parent="HSplitContainer/Left/VBoxContainer/Explorer/RulesContainer/RuleSelectors/NewRuleContainer/Panel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 text = "+"
 script = SubResource("GDScript_1rxvp")
 
-[node name="PanelContainer" type="PanelContainer" parent="HSplitContainer/Left/VBoxContainer"]
+[node name="PanelContainer" type="PanelContainer" parent="HSplitContainer/Left/VSplitContainer"]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="HSplitContainer/Left/VBoxContainer/PanelContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="HSplitContainer/Left/VSplitContainer/PanelContainer"]
 custom_minimum_size = Vector2(0, 25)
 layout_mode = 2
 
-[node name="ExplorerButton" type="Button" parent="HSplitContainer/Left/VBoxContainer/PanelContainer/HBoxContainer"]
+[node name="ExplorerButton" type="Button" parent="HSplitContainer/Left/VSplitContainer/PanelContainer/HBoxContainer"]
 layout_mode = 2
 text = "Explorer"
 script = SubResource("GDScript_s8l8w")

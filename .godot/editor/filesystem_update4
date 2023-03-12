@@ -1,9 +1,3 @@
 res://default_env.tres
-res://Control.tscn
-res://Root.gd
-res://Face.gd
-res://RuleButton.gd
-res://GrammarShape.gd
-res://Rule.gd
-res://Selector.gd
 res://RuleSelector.tscn
+res://Control.tscn

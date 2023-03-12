@@ -42,11 +42,15 @@ var virtual_vertices = []
 var product_symbols = []
 var product_vertices = []
 
-func _init(_symbol):
+var index = -1
+
+func _init(_index, _symbol):
+	self.index = _index
+	
 	self.symbol = _symbol
 	self.vertex_counter = self.symbol.nr_of_vertices
 	
-	self.symbol.add_rule(self)
+	self.symbol.add_rule(_index, self)
 	
 func _add(vv):
 	self.virtual_vertices.push_back(vv)
@@ -54,8 +58,8 @@ func _add(vv):
 	self.vertex_counter += 1
 	return vv_index
 
-func add_copy_vertex(index):
-	var vv = FirstVertex.new(index)
+func add_copy_vertex(_index):
+	var vv = FirstVertex.new(_index)
 	return self._add(vv)
 	
 func add_interpolated_vertex(index1, index2, inter_coef):

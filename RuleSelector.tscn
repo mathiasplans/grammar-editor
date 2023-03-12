@@ -1,9 +1,13 @@
-[gd_scene load_steps=2 format=3 uid="uid://bwxn2fgngxsns"]
+[gd_scene load_steps=4 format=3 uid="uid://bwxn2fgngxsns"]
+
+[ext_resource type="Texture2D" uid="uid://5vloppmf5qjo" path="res://icons/rename.svg" id="1_guv3c"]
+[ext_resource type="Texture2D" uid="uid://beykjh2d3vlp2" path="res://icons/remove.svg" id="2_1eghh"]
 
 [sub_resource type="GDScript" id="GDScript_jngft"]
 resource_name = "RuleSelectorContainer"
 script/source = "extends PanelContainer
 signal rule_selected(rule_i)
+signal rule_deleted(rule_i)
 
 @export var rule_i : int
 @onready var rule_name
@@ -18,8 +22,15 @@ func _ready():
 	
 	%ViewRule.text = self.rule_name
 	
-	# Rename functionality
+	# Toolbar functionaility
 	%ToolBar/Rename.button_down.connect(_on_rename_request)
+	%ToolBar/Delete.button_down.connect(_on_delete_request)
+	
+	self.mouse_entered.connect(self._mouse_entered)
+	self.mouse_exited.connect(self._mouse_exited)
+	
+	# Toolbar visibility
+	%ToolBar.visible = false
 	
 func _on_rule_selected():
 	self.rule_selected.emit(self.rule_i)
@@ -35,42 +46,58 @@ func _on_rename_request():
 	
 	%ViewRule/RuleName.visible = true
 	%ViewRule/RuleName.select_all()
+	
+func _on_delete_request():
+	self.rule_deleted.emit(self.rule_i)
+	self.queue_free()
+	
+func _mouse_entered():
+	%ToolBar.visible = true
+	
+func _mouse_exited():
+	%ToolBar.visible = false
 "
 
 [node name="RuleSelector" type="PanelContainer"]
 custom_minimum_size = Vector2(120, 70)
+mouse_filter = 1
 script = SubResource("GDScript_jngft")
 
-[node name="Panel" type="Panel" parent="."]
+[node name="ViewRule" type="Button" parent="."]
+unique_name_in_owner = true
 layout_mode = 2
+mouse_filter = 1
+flat = true
 
-[node name="VSplit" type="VSplitContainer" parent="Panel"]
+[node name="RuleName" type="LineEdit" parent="ViewRule"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-dragger_visibility = 2
+mouse_filter = 1
+alignment = 1
 
-[node name="ToolBar" type="HBoxContainer" parent="Panel/VSplit"]
+[node name="ToolBar" type="HBoxContainer" parent="."]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 15)
 layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
 
-[node name="Rename" type="Button" parent="Panel/VSplit/ToolBar"]
+[node name="Rename" type="TextureButton" parent="ToolBar"]
+custom_minimum_size = Vector2(15, 0)
 layout_mode = 2
+mouse_filter = 1
+texture_normal = ExtResource("1_guv3c")
+ignore_texture_size = true
+stretch_mode = 0
 
-[node name="ViewRule" type="Button" parent="Panel/VSplit"]
-unique_name_in_owner = true
+[node name="Delete" type="TextureButton" parent="ToolBar"]
+custom_minimum_size = Vector2(15, 15)
 layout_mode = 2
-flat = true
-
-[node name="RuleName" type="LineEdit" parent="Panel/VSplit/ViewRule"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-alignment = 1
+mouse_filter = 1
+texture_normal = ExtResource("2_1eghh")
+ignore_texture_size = true
+stretch_mode = 0

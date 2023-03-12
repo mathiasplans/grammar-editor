@@ -1,4 +1,4 @@
-extends Node
+extends Node3D
 class_name Rule
 
 var cuts = []
@@ -10,6 +10,17 @@ var leaf_polys = {}
 
 var lhs = null
 var lhs_poly = null
+
+var index = -1
+var compiled = false
+
+var anchors = {}
+
+func _init(_index):
+	self.index = _index
+	
+func is_empty():
+	return self.meshes.size() == 0
 
 func set_meshes(poly, mesh_instances):
 	self.meshes[poly] = mesh_instances
@@ -44,10 +55,29 @@ func set_leafness(poly):
 func remove_leafness(poly):
 	self.leaf_polys.erase(poly)
 	
+func is_leaf(poly):
+	return self.leaf_polys.has(poly)
+	
 func add_cut(cut):
 	self.cuts.push_back(cut)
 	
 func get_leaf_polys():
 	return self.leaf_polys.keys()
+	
+func add_anchor(poly, anchor):
+	if self.anchors.has(poly) and self.anchors[poly] == anchor:
+		return false
+		
+	self.anchors[poly] = anchor
+	return true
+	
+func remove_anchor(poly):
+	return self.anchors.erase(poly)
+	
+func get_anchor(poly):
+	if self.anchors.has(poly):
+		return self.anchors[poly]
+		
+	return null
 
 
