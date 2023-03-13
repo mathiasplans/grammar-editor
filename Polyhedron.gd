@@ -648,3 +648,42 @@ func get_first_face():
 
 func get_first_face_obj():
 	return self.face_objs[0]
+	
+func _face_normal(face):
+	return (self.vertices[face[0]] - self.vertices[face[1]]) \
+	.cross(self.vertices[face[2]] - self.vertices[face[1]]).normalized()
+
+func get_closest_edge(ray_start, ray_end, transform, only_visible=false):
+	var closest_dist = 10000000000
+	var closest_start
+	var closest_end
+	var closest_p
+	for start in self.directed:
+		for end in self.directed[start]:
+			var edge_start = transform * self.vertices[start]
+			var edge_end = transform * self.vertices[end]
+			
+			var face_i = self.directed_to_face[[start, end]]
+			var face = self.faces[face_i]
+			var normal = transform * self._face_normal(face)
+			var to_cam = ray_start - self.vertices[face[0]]
+			
+			if not only_visible or normal.dot(to_cam) > 0:
+				var points = Geometry3D.get_closest_points_between_segments(edge_start, edge_end, ray_start, ray_end)
+				var edge_point = points[0]
+				var ray_point = points[1]
+				
+				var d = (edge_point - ray_point).length()
+				
+				# TODO: make distance comparison take distance from camera into account
+				
+				if d < closest_dist:
+					closest_dist = d
+					closest_start = start
+					closest_end = end
+					closest_p = transform.inverse() * edge_point
+
+	return [closest_start, closest_end, closest_p]
+
+func get_closest_vertex(ray_start, ray_end):
+	pass # TODO

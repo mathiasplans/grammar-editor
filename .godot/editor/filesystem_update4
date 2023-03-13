@@ -1,3 +1,9 @@
 res://default_env.tres
 res://RuleSelector.tscn
 res://Control.tscn
+res://SymbolRules.tscn
+res://GrammarSymbolMaker.gd
+res://GrammarSymbol.gd
+res://AnchorManager.gd
+res://Polyhedron.gd
+res://Selector.gd

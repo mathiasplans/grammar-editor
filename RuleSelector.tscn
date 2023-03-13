@@ -6,21 +6,21 @@
 [sub_resource type="GDScript" id="GDScript_jngft"]
 resource_name = "RuleSelectorContainer"
 script/source = "extends PanelContainer
-signal rule_selected(rule_i)
-signal rule_deleted(rule_i)
+signal retexted(index, new_text)
+signal selected(index)
+signal deleted(index)
 
-@export var rule_i : int
-@onready var rule_name
+@export var index : int
+@onready var text = \"\"
 
 func _ready():
-	%ViewRule.button_down.connect(_on_rule_selected)
-	%ViewRule/RuleName.text_submitted.connect(_on_name_change)
+	%ViewButton.button_down.connect(_on_selected)
+	%ViewButton/Name.text_submitted.connect(_on_name_change)
 	
-	self.rule_name = \"Rule %d\" % self.rule_i
-	%ViewRule/RuleName.placeholder_text = self.rule_name
-	%ViewRule/RuleName.visible = false
+	%ViewButton/Name.placeholder_text = self.text
+	%ViewButton/Name.visible = false
 	
-	%ViewRule.text = self.rule_name
+	%ViewButton.text = self.text
 	
 	# Toolbar functionaility
 	%ToolBar/Rename.button_down.connect(_on_rename_request)
@@ -32,23 +32,31 @@ func _ready():
 	# Toolbar visibility
 	%ToolBar.visible = false
 	
-func _on_rule_selected():
-	self.rule_selected.emit(self.rule_i)
+func rename(new_name):
+	self._on_name_change(new_name)
+	
+func delete():
+	self._on_delete_request()
+	
+func _on_selected():
+	self.selected.emit(self.index)
 
 func _on_name_change(new_text):
-	self.rule_name = new_text
+	self.text = new_text
 	
-	%ViewRule/RuleName.visible = false
-	%ViewRule.text = self.rule_name
+	%ViewButton/Name.visible = false
+	%ViewButton.text = self.text
+	
+	self.retexted.emit(self.index, self.text)
 	
 func _on_rename_request():
-	%ViewRule.text = \"\"
+	%ViewButton.text = \"\"
 	
-	%ViewRule/RuleName.visible = true
-	%ViewRule/RuleName.select_all()
+	%ViewButton/Name.visible = true
+	%ViewButton/Name.select_all()
 	
 func _on_delete_request():
-	self.rule_deleted.emit(self.rule_i)
+	self.deleted.emit(self.index)
 	self.queue_free()
 	
 func _mouse_entered():
@@ -58,18 +66,18 @@ func _mouse_exited():
 	%ToolBar.visible = false
 "
 
-[node name="RuleSelector" type="PanelContainer"]
+[node name="Selector" type="PanelContainer"]
 custom_minimum_size = Vector2(120, 70)
 mouse_filter = 1
 script = SubResource("GDScript_jngft")
 
-[node name="ViewRule" type="Button" parent="."]
+[node name="ViewButton" type="Button" parent="."]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 1
 flat = true
 
-[node name="RuleName" type="LineEdit" parent="ViewRule"]
+[node name="Name" type="LineEdit" parent="ViewButton"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

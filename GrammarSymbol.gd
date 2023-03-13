@@ -1,7 +1,8 @@
 extends Node
 class_name GrammarSymbol
 
-var uuid = -1
+var id = -1
+var text = ""
 
 var nr_of_vertices = 0
 var faces = []

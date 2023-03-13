@@ -52,13 +52,13 @@ func _deselect_face_action(face, rule):
 		self.face_deselected.emit(face, rule)
 	
 func _select_anchor_action(face, rule):
-	self.anchor_manager.select(face.poly, rule)
+	self.anchor_manager.select(face.poly)
 	
 	if not self.nosig_sel:
 		self.anchor_selected.emit(face, rule)
 	
 func _deselect_anchor_action(face, rule):
-	self.anchor_manager.deselect(face.poly, rule)
+	self.anchor_manager.deselect(face.poly)
 	
 	if not self.nosig_desel:
 		self.anchor_deselected.emit(face, rule)

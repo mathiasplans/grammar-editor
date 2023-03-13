@@ -183,3 +183,6 @@ func remove_poly(poly):
 			
 		self.polymeta[poly].snode.queue_free()
 		self.polymeta.erase(poly)
+		
+func get_anchor(poly):
+	return self.polymeta[poly].snode

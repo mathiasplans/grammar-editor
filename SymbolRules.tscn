@@ -1,0 +1,117 @@
+[gd_scene load_steps=4 format=3 uid="uid://ch1p7ghl03qlr"]
+
+[ext_resource type="PackedScene" uid="uid://bwxn2fgngxsns" path="res://RuleSelector.tscn" id="1_vi045"]
+
+[sub_resource type="GDScript" id="GDScript_ryr5i"]
+resource_name = "SymbolRules"
+script/source = "extends GridContainer
+
+signal rule_created(symbol, index)
+signal rule_selected(symbol, index)
+signal rule_deleted(symbol, index)
+
+signal symbol_renamed(symbol, new_text)
+signal symbol_selected(symbol)
+signal symbol_deleted(symbol)
+
+var symbol
+var rules = {}
+
+@onready var new_rule = $NewRuleContainer/NewRule
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	self.new_rule.rule_created.connect(_on_rule_create)
+	self.new_rule.rule_selected.connect(_on_rule_select)
+	self.new_rule.rule_deleted.connect(_on_rule_delete)
+	
+	# Set the default name
+	$SymbolContainer.rename(symbol.text)
+	
+	$SymbolContainer.retexted.connect(_on_symbol_rename)
+	$SymbolContainer.selected.connect(_on_symbol_select)
+	$SymbolContainer.deleted.connect(_on_symbol_delete)
+
+func _on_rule_create(index, object):
+	self.rule_created.emit(self.symbol, index)
+	self.rules[index] = object
+	
+func _on_rule_select(index):
+	self.rule_selected.emit(self.symbol, index)
+	
+func _on_rule_delete(index):
+	self.rule_deleted.emit(self.symbol, index)
+	self.rules.erase(index)
+	
+func _on_symbol_rename(_index, new_text):
+	self.symbol_renamed.emit(self.symbol, new_text)
+	
+func _on_symbol_select(_index):
+	self.symbol_selected.emit(self.symbol)
+	
+func _on_symbol_delete(_index):
+	# Free all the children
+	for key in self.rules.keys():
+		var rule = self.rules[key]
+		rule.delete()
+	
+	self.symbol_deleted.emit(self.symbol)
+	
+	self.queue_free()
+"
+
+[sub_resource type="GDScript" id="GDScript_1rxvp"]
+resource_name = "NewRule"
+script/source = "extends Button
+signal rule_created(index, symbol)
+signal rule_selected(index)
+signal rule_deleted(index)
+
+@onready var rulesel_scene = preload(\"res://RuleSelector.tscn\")
+
+var rule_index_counter = 0
+
+@onready var rule_selectors = $\"../..\"
+
+func _pressed():
+	var instance = rulesel_scene.instantiate()
+	instance.index = self.rule_index_counter
+	self.rule_index_counter += 1
+	
+	self.rule_created.emit(instance.index, instance)
+	
+	self.rule_selectors.add_child(instance)
+
+	var instance_i = instance.get_index()
+	self.rule_selectors.move_child(instance, instance_i - 1)
+	
+	# Connect signals
+	instance.selected.connect(_on_rule_selected)
+	instance.deleted.connect(_on_rule_deleted)
+	
+	instance.rename(\"Rule %d\" % instance.index)
+
+func _on_rule_selected(index):
+	self.rule_selected.emit(index)
+	
+func _on_rule_deleted(index):
+	self.rule_deleted.emit(index)
+"
+
+[node name="RuleSelectors" type="GridContainer"]
+columns = 6
+script = SubResource("GDScript_ryr5i")
+
+[node name="SymbolContainer" parent="." instance=ExtResource("1_vi045")]
+layout_mode = 2
+
+[node name="NewRuleContainer" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(70, 70)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+
+[node name="NewRule" type="Button" parent="NewRuleContainer"]
+layout_mode = 2
+text = "+"
+script = SubResource("GDScript_1rxvp")
