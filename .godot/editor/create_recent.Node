@@ -1,6 +1,7 @@
+Button
+Node3D
 MeshInstance3D
 GridContainer
-Button
 PanelContainer
 VSplitContainer
 Panel
@@ -9,7 +10,6 @@ HBoxContainer
 VBoxContainer
 LineEdit
 TextEdit
-Node3D
 Label
 TabContainer
 ScrollContainer

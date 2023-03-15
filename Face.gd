@@ -17,6 +17,7 @@ var normal = null
 var face_i
 
 @onready var selector = $"/root/Control/HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport/Root/Editor/Selector"
+@onready var cursors = $"/root/Control/HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport/Root/Editor/Cursors"
 
 const cut_key = KEY_C
 const cutplane_script = preload("res://CutPlane.gd")
@@ -44,7 +45,7 @@ func create_better_outline(margin):
 	
 	return st.commit()
 
-func _init(_mesh,_poly,_hull_indices,_face_i):
+func _init(_mesh, _poly, _hull_indices, _face_i):
 	self.mesh = _mesh
 	self.poly = _poly
 	self.hull_indices = _hull_indices
@@ -154,7 +155,7 @@ func _input(event):
 		# Create a cutting plane from selected face
 		if self.selected:
 			if event.pressed:
-				if self.selector.current_mode == Selector.Mode.FACE and event.keycode == cut_key:
+				if self.cursors.mode == Cursors.Mode.FACE_CUT and self.selector.current_mode == Selector.Mode.FACE and event.keycode == cut_key:
 					# Make sure that a cutting plane doesn't exist already
 					if not self.cut_plane_exists:
 						var cut_plane = CutPlane.new(self.hull, self.poly)

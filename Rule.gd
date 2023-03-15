@@ -80,4 +80,5 @@ func get_anchor(poly):
 		
 	return null
 
-
+func get_polyhedrons():
+	return self.meshes.keys()

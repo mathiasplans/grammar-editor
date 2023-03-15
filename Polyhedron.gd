@@ -210,8 +210,16 @@ func _cut_points(plane_point, plane_normal):
 					var contact = origin + ray
 					
 					# Prevent symmetrical pairs
-					#if not verts_to_cuts.has([face[next_i], face[i]]):
-					verts_to_cuts[[face[i], face[next_i]]] = [t, contact]
+					const e = 0.01
+					var value = [t, contact]
+					if t >= (1 - e):
+						verts_to_cuts[face[next_i]] = value
+						
+					elif t <= e:
+						verts_to_cuts[face[i]] = value
+						
+					else:
+						verts_to_cuts[[face[i], face[next_i]]] = value
 
 	return verts_to_cuts
 
@@ -232,28 +240,50 @@ func _introduce_cut(plane_point, plane_normal):
 	var already = {}
 	for key in points.keys():
 		var val = points[key]
-		var invkey = key.duplicate()
-		invkey.reverse()
 		
-		var i
-		
-		if already.has(invkey):
-			i = already[invkey]
+		if key is Array:
+			var invkey = key.duplicate()
+			invkey.reverse()
 			
-		else:
-			i = dup.add_vertex(val[1])
-			dup.cut_edges[i] = []
-			dup.cut_points.push_back(i)
-			already[key] = i
+			var i
 			
-			construction[i] = [key[0], key[1], val[0]]
+			if already.has(invkey):
+				i = already[invkey]
 				
-		val.push_back(i)
+			else:
+				i = dup.add_vertex(val[1])
+				dup.cut_edges[i] = []
+				dup.cut_points.push_back(i)
+				already[key] = i
+				
+				construction[i] = [key[0], key[1], val[0]]
+					
+			val.push_back(i)
+		
+		# No new vertices are needed
+		else:
+			val.push_back(key)
+			dup.cut_edges[key] = []
+			dup.cut_points.push_back(key)
 		
 	# Add faces
 	for fi in self.faces.size():
 		var face = self.faces[fi]
-		# Each face has either 0 or 2 cut points
+		
+		# Count the number of cut points on the face
+		var nr_of_cutpoints = 0
+		for i in face.size():
+			var next_i = (i + 1) % face.size()
+			if points.has(face[i]) or points.has([face[i], face[next_i]]):
+				nr_of_cutpoints += 1
+
+		# 0 cut points means the face stays
+		# 1 cut point means that the plane does not cut the face
+		# 2 cut points means that the plane cuts the face
+		if nr_of_cutpoints < 2:
+			dup.add_face(face)
+			continue
+		
 		var cuts = 0
 		var trace = [[], []]
 		var trace_i = 0
@@ -271,8 +301,30 @@ func _introduce_cut(plane_point, plane_normal):
 			# Add it to the new
 			trace[trace_i].push_back(vi)
 			
-			# Add the cut
-			if points.has([vi, next_vi]):
+			var vcut = points.has(vi)
+			var edgecut = points.has([vi, next_vi])
+			var nextvcut = points.has(next_vi)
+			
+			# Turn a vertex into a cut point
+			if vcut and not (edgecut or nextvcut):
+				var cut_plane = points[vi]
+				cuts += 1
+				
+				trace_i ^= 1
+				
+				# Add it to the other side as well
+				trace[trace_i].push_back(vi)
+				
+				# Remember the edges that cut the original polyhedron
+				if cuts == 2:
+					dup.cut_edges[other].push_back(vi)
+					dup.cut_edges[vi].push_back(other)
+					
+				else:
+					other = vi
+			
+			# Add a cut to an edge
+			if edgecut:
 				var cut_plane = points[[vi, next_vi]]
 				cuts += 1
 				
@@ -291,9 +343,7 @@ func _introduce_cut(plane_point, plane_normal):
 					
 		# Add new faces
 		dup.add_face(trace[0])
-		
-		if trace[1].size() > 0:
-			dup.add_face(trace[1])
+		dup.add_face(trace[1])
 			
 	return [dup, construction]
 	
@@ -435,7 +485,7 @@ func cut(plane_point, plane_normal):
 	var construction = cut_poly_construct[1]
 	
 	# If no cut was made, return self
-	if cut_poly.vertices.size() == self.vertices.size():
+	if cut_poly.cut_edges.size() == 0:
 		var mock_translation = []
 		for i in self.vertices.size():
 			mock_translation.push_back(i)
@@ -649,7 +699,8 @@ func get_first_face():
 func get_first_face_obj():
 	return self.face_objs[0]
 	
-func _face_normal(face):
+func face_normal(face_i):
+	var face = self.faces[face_i]
 	return (self.vertices[face[0]] - self.vertices[face[1]]) \
 	.cross(self.vertices[face[2]] - self.vertices[face[1]]).normalized()
 
@@ -664,9 +715,10 @@ func get_closest_edge(ray_start, ray_end, transform, only_visible=false):
 			var edge_end = transform * self.vertices[end]
 			
 			var face_i = self.directed_to_face[[start, end]]
+			var normal = transform * self.face_normal(face_i)
+			
 			var face = self.faces[face_i]
-			var normal = transform * self._face_normal(face)
-			var to_cam = ray_start - self.vertices[face[0]]
+			var to_cam = ray_start - transform * self.vertices[face[0]]
 			
 			if not only_visible or normal.dot(to_cam) > 0:
 				var points = Geometry3D.get_closest_points_between_segments(edge_start, edge_end, ray_start, ray_end)
@@ -683,7 +735,37 @@ func get_closest_edge(ray_start, ray_end, transform, only_visible=false):
 					closest_end = end
 					closest_p = transform.inverse() * edge_point
 
-	return [closest_start, closest_end, closest_p]
+	return [closest_dist, closest_p, closest_start, closest_end]
 
-func get_closest_vertex(ray_start, ray_end):
-	pass # TODO
+func get_closest_vertex(ray_start, ray_end, transform, only_visible=false):
+	var closest_dist = 10000000000
+	var closest_vi
+	
+	for i in self.vertices.size():
+		var vertex = transform * self.vertices[i]
+		# Check visibility
+		if only_visible:
+			var to_cam = ray_start - vertex
+			var is_visible = false
+			for o in self.directed[i]:
+				var face_i = self.directed_to_face[[i, o]]
+				var normal = transform * self.face_normal(face_i)
+				
+				if normal.dot(to_cam) > 0:
+					is_visible = true
+					break
+			
+			# If not visible, go to the next vertex
+			if not is_visible:
+				continue
+		
+		var close = Geometry3D.get_closest_point_to_segment(vertex, ray_start, ray_end)
+		
+		var seg_to_vert = vertex - close
+		var dist = seg_to_vert.length()
+			
+		if dist < closest_dist:
+			closest_dist = dist
+			closest_vi = i
+
+	return [closest_dist, self.vertices[closest_vi], closest_vi]

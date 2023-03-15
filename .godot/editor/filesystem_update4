@@ -7,3 +7,8 @@ res://GrammarSymbol.gd
 res://AnchorManager.gd
 res://Polyhedron.gd
 res://Selector.gd
+res://Rule.gd
+res://Face.gd
+res://Cursors.gd
+res://face.gdshader
+res://CutPlane.gd

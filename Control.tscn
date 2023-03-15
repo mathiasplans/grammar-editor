@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://b05ly8tkkyqbc"]
+[gd_scene load_steps=18 format=3 uid="uid://b05ly8tkkyqbc"]
 
 [ext_resource type="Script" path="res://Root.gd" id="1"]
 [ext_resource type="Script" path="res://EventPasser.gd" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://Selector.gd" id="4"]
 [ext_resource type="Script" path="res://AnchorManager.gd" id="5"]
 [ext_resource type="Script" path="res://GrammarSymbolMaker.gd" id="6_j4m57"]
+[ext_resource type="Script" path="res://Cursors.gd" id="6_miobu"]
 
 [sub_resource type="GDScript" id="GDScript_4jyo7"]
 resource_name = "CompileButton"
@@ -156,60 +157,60 @@ func add_branch(cut, parent_treeitem, cut_plane, text, sym):
 	$TreeManager.create_child_item(cut, parent_treeitem, cut_plane, text, sym)
 	self._edited()
 	
-func compile():
-	self.current_rule.compiled = true
-	return $TreeManager.create_grammar_rule(self.current_rule.index)
+func compile(rule=self.current_rule):
+	rule.compiled = true
+	return $TreeManager.create_grammar_rule(rule.index)
 	
 ### Wrapper functions for the Rule object ###
 
-func set_meshes(poly, mesh_instances):
-	self.current_rule.set_meshes(poly, mesh_instances)
+func set_meshes(poly, mesh_instances, rule=self.current_rule):
+	rule.set_meshes(poly, mesh_instances)
 	
 	for mesh in mesh_instances:
-		self.current_rule.add_child(mesh)
+		rule.add_child(mesh)
 	
-func get_meshes(poly):
-	return self.current_rule.get_meshes(poly)
+func get_meshes(poly, rule=self.current_rule):
+	return rule.get_meshes(poly)
 	
-func erase_meshes(poly):
+func erase_meshes(poly, rule=self.current_rule):
 	for mesh in self.get_meshes(poly):
-		self.current_rule.remove_child(mesh)
+		rule.remove_child(mesh)
 	
-	self.current_rule.erase_meshes(poly)
+	rule.erase_meshes(poly)
 		
-func get_all_meshes():
-	return self.current_rule.get_all_meshes()
+func get_all_meshes(rule=self.current_rule):
+	return rule.get_all_meshes()
 	
-func get_treeitem(poly):
-	return self.current_rule.get_treeitem(poly)
+func get_treeitem(poly, rule=self.current_rule):
+	return rule.get_treeitem(poly)
 	
-func set_treeitem(poly, item):
-	self.current_rule.set_treeitem(poly, item)
+func set_treeitem(poly, item, rule=self.current_rule):
+	rule.set_treeitem(poly, item)
 	
-func set_leafness(poly):
-	self.current_rule.set_leafness(poly)
-	self._edited()
+func set_leafness(poly, rule=self.current_rule):
+	rule.set_leafness(poly)
+	self._edited(rule)
 	
-func remove_leafness(poly):
-	self.current_rule.remove_leafness(poly)
-	$TreeManager.remove_leafness(poly)
-	self._edited()
+func remove_leafness(poly, rule=self.current_rule):
+	rule.remove_leafness(poly)
+	$TreeManager.remove_leafness(poly, rule)
+	self._edited(rule)
 	
-func is_leaf(poly):
-	return self.current_rule.is_leaf(poly)
+func is_leaf(poly, rule=self.current_rule):
+	return rule.is_leaf(poly)
 	
-func add_cut(cut):
-	self.current_rule.add_cut(cut)
-	self._edited()
+func add_cut(cut, rule=self.current_rule):
+	rule.add_cut(cut)
+	self._edited(rule)
 	
-func get_leaf_polys():
-	return self.current_rule.get_leaf_polys()
+func get_leaf_polys(rule=self.current_rule):
+	return rule.get_leaf_polys()
 
-func add_anchor(poly, anchor):
+func add_anchor(poly, anchor, rule=self.current_rule):
 	if self.get_anchor(poly) == null:
-		self.current_rule.add_anchor(poly, anchor)
-		self.current_rule.add_child(anchor)
-		self._edited()
+		rule.add_anchor(poly, anchor)
+		rule.add_child(anchor)
+		self._edited(rule)
 	
 func remove_anchor(poly, rule=self.current_rule):
 	var anchor = self.get_anchor(poly, rule)
@@ -221,6 +222,9 @@ func remove_anchor(poly, rule=self.current_rule):
 	
 func get_anchor(poly, rule=self.current_rule):
 	return rule.get_anchor(poly)
+
+func get_polyhedrons(rule=self.current_rule):
+	return rule.get_polyhedrons()
 "
 
 [sub_resource type="GDScript" id="GDScript_xx60u"]
@@ -367,8 +371,8 @@ func create_child_item(cut, parent_poly, cut_plane, text, sym=null):
 	
 	self.tree_edited.emit()
 	
-func remove_leafness(poly):
-	var item = %RuleManager.get_treeitem(poly)
+func remove_leafness(poly, rule):
+	var item = %RuleManager.get_treeitem(poly, rule)
 	
 	var tm = item.get_metadata(TREE_META)
 	tm.leaf = false
@@ -380,10 +384,10 @@ func remove_leafness(poly):
 	item.set_button_disabled(TREE_BUTTONS, BUTTON_EPSILON, true)
 	
 	# Make the text non-editable
-	print(\"GG\")
 	item.set_editable(TREE_SYMBOL, false)
 	
-	self.tree_edited.emit()
+	if %RuleManager.current_rule == rule:
+		self.tree_edited.emit()
 	
 func add_split(poly, split):
 	var item = %RuleManager.get_treeitem(poly)
@@ -881,9 +885,11 @@ func _ready():
 	self.compile_button.button_down.connect(_on_compile_button_press)
 	
 	# Anchor manager
-	$AnchorManager.polyhedron_reordered.connect(_on_poly_reorder)
+	$AnchorManager.polyhedron_reordered.connect(self._on_poly_reorder)
 	
-	%RuleManager.rule_changed.connect(_on_rule_change)
+	%RuleManager.rule_changed.connect(self._on_rule_change)
+	
+	$Cursors.create_cut.connect(self._on_cut_complete)
 	
 	self.go_blank()
 	
@@ -982,28 +988,15 @@ func _on_rule_change(old_rule, created):
 
 	# Add new meshes
 	self.draw_rule()
-	
-func _process(delta):
-	closest_to_mouse()
-
-func closest_to_mouse():
-	if %RuleManager.current_rule != null:
-		var mouse_position = self.get_viewport().get_mouse_position()
-		var ray_origin = %Cam.project_ray_origin(mouse_position)
-		var ray_end = ray_origin + %Cam.project_ray_normal(mouse_position) * 100
-		
-		# Temporary
-		var poly = %RuleManager.current_rule.meshes.keys()[0]
-		
-		# Get the closest edge and point
-		var incidence = poly.get_closest_edge(ray_origin, ray_end, self.global_transform, true)
-		var p = incidence[2]
-		
-		if p != null:
-			$Cursor.position = p
 "
 
-[sub_resource type="BoxMesh" id="BoxMesh_gsk2u"]
+[sub_resource type="SphereMesh" id="SphereMesh_4nkvx"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_aipi0"]
+resource_name = "red_cursor"
+shading_mode = 2
+specular_mode = 2
+albedo_color = Color(1, 0, 0, 1)
 
 [sub_resource type="GDScript" id="GDScript_r1mpe"]
 resource_name = "AddSymbol"
@@ -1122,6 +1115,17 @@ layout_mode = 2
 disabled = true
 text = "New Gen"
 
+[node name="FaceCut" type="Button" parent="HSplitContainer/Left/RuleEditor/TopPanel/ToolInfo"]
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+text = "Face cut"
+
+[node name="TriPointCut" type="Button" parent="HSplitContainer/Left/RuleEditor/TopPanel/ToolInfo"]
+layout_mode = 2
+toggle_mode = true
+text = "3 point cut"
+
 [node name="SubViewportContainer" type="SubViewportContainer" parent="HSplitContainer/Left/RuleEditor"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -1165,9 +1169,29 @@ script = ExtResource("5")
 
 [node name="Meshes" type="Node3D" parent="HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport/Root/Editor"]
 
-[node name="Cursor" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport/Root/Editor"]
-transform = Transform3D(0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 0, 0, 0)
-mesh = SubResource("BoxMesh_gsk2u")
+[node name="Cursors" type="Node3D" parent="HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport/Root/Editor"]
+script = ExtResource("6_miobu")
+
+[node name="Cursor1" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport/Root/Editor/Cursors"]
+transform = Transform3D(0.07, 0, 0, 0, 0.07, 0, 0, 0, 0.07, 0, 0, 0)
+visible = false
+mesh = SubResource("SphereMesh_4nkvx")
+skeleton = NodePath("../..")
+surface_material_override/0 = SubResource("StandardMaterial3D_aipi0")
+
+[node name="Cursor2" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport/Root/Editor/Cursors"]
+transform = Transform3D(0.07, 0, 0, 0, 0.07, 0, 0, 0, 0.07, 0, 0, 0)
+visible = false
+mesh = SubResource("SphereMesh_4nkvx")
+skeleton = NodePath("../..")
+surface_material_override/0 = SubResource("StandardMaterial3D_aipi0")
+
+[node name="Cursor3" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport/Root/Editor/Cursors"]
+transform = Transform3D(0.07, 0, 0, 0, 0.07, 0, 0, 0, 0.07, 0, 0, 0)
+visible = false
+mesh = SubResource("SphereMesh_4nkvx")
+skeleton = NodePath("../..")
+surface_material_override/0 = SubResource("StandardMaterial3D_aipi0")
 
 [node name="Symbols" type="Node" parent="HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport/Root"]
 unique_name_in_owner = true

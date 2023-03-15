@@ -28,7 +28,7 @@ static func _set_mat(mesh_inst, double_alpha=false):
 	mesh_inst.material_override.flags_transparent = true
 
 # Constructor
-func _init(hull,_poly):
+func _init(hull, _poly):
 	self.normal = Geom.calculate_normal(hull)
 	self.poly = _poly
 	
