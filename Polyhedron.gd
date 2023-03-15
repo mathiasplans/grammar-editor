@@ -452,7 +452,9 @@ func _finalize_cut(cut_poly, face_partition, construction):
 	poly.add_missing_faces()
 	poly.complete()
 	
-	var anchor_order = poly.order_by_anchor(0, 1)
+	# Put it into a random anchor order
+	var face = poly.faces[0]
+	var anchor_order = poly.order_by_anchor(face[0], face[1])
 	
 	# Translate the position by the anchor order
 	var new_translation = []
