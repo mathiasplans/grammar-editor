@@ -18,6 +18,7 @@ var current_mode : Mode = Mode.FACE
 var change_direction = 1
 
 var enabled = true
+var face_mode = false
 
 var anchor_move = null
 
@@ -107,13 +108,21 @@ func select(face, rule=%RuleManager.current_rule):
 		current_mode = Mode.NONE
 		
 	# Progress current mode
-	self.current_mode = (self.current_mode + change_direction) as Mode 
-	
-	if self.current_mode == Mode.ANCHOR and (face.poly.symbol == null or face.poly.original or face.face_i != 0):
+	if self.face_mode:
+		if self.current_mode == Mode.FACE:
+			self.current_mode = Mode.NONE
+			
+		else:
+			self.current_mode = Mode.FACE
+		
+	else:
 		self.current_mode = (self.current_mode + change_direction) as Mode 
 		
-	# Overflow
-	self.current_mode = ((self.current_mode + Mode._amount) % Mode._amount) as Mode
+		if self.current_mode == Mode.ANCHOR and (face.poly.symbol == null or face.poly.original or face.face_i != 0):
+			self.current_mode = (self.current_mode + change_direction) as Mode 
+			
+		# Overflow
+		self.current_mode = ((self.current_mode + Mode._amount) % Mode._amount) as Mode
 	
 	self._select_action_call(rule)
 	
@@ -142,6 +151,10 @@ func select_face(face, rule=%RuleManager.current_rule):
 		self._select_action_call(rule)
 		
 func select_anchor(face, rule=%RuleManager.current_rule):
+	if self.face_mode:
+		self.select_clear(null, rule)
+		return
+	
 	if self.enabled and not _same_mode(face, Mode.ANCHOR):
 		self._deselect_action_call(rule)
 		
@@ -151,6 +164,10 @@ func select_anchor(face, rule=%RuleManager.current_rule):
 		self._select_action_call(rule)
 	
 func select_poly(face, rule=%RuleManager.current_rule):
+	if self.face_mode:
+		self.select_clear(null, rule)
+		return
+	
 	if self.enabled and not _same_mode_poly(face, Mode.POLY):
 		self._deselect_action_call(rule)
 		
@@ -205,3 +222,10 @@ func enable():
 func disable():
 	self.select_clear()
 	self.enabled = false
+
+func enable_face_mode():
+	self.select_clear()
+	self.face_mode = true
+	
+func disable_face_mode():
+	self.face_mode = false

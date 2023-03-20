@@ -1,7 +1,7 @@
 extends Node3D
 
-@onready var test_grammar = %ToolInfo/TestGrammar
-@onready var apply_rule = %ToolInfo/ApplyRule
+@onready var test_grammar = %RuleOpt/TestGrammar
+@onready var apply_rule = %ToolOpt/TestOpt/ApplyRule
 
 const ROT_SPEED = 0.01
 var mouse_down = false
@@ -20,10 +20,16 @@ func _input(event):
 			self.rotate(Vector3.RIGHT, event.relative.y * ROT_SPEED)
 
 # Hide children and 
-func _on_test_grammar_press():		
+func _on_test_grammar_press():
 	# Swap visiblilities
 	$Editor.visible = not $Editor.visible
 	$Tester.visible = not $Tester.visible
 	
 	# Toggle the ability of the generation button
 	self.apply_rule.disabled = not self.apply_rule.disabled
+	
+	if $Editor.visible != true:
+		%ToolOpt.set_mode(ToolOpt.Mode.TEST)
+		
+	else:
+		%ToolOpt.set_mode(ToolOpt.Mode.NONE)

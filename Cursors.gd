@@ -13,33 +13,61 @@ var cursor_polys = [null, null, null]
 var complete = false
 var poly
 
+var end_function = null
+
 func _ready():
-	%ToolInfo/FaceCut.toggled.connect(_on_facecut_toggled)
-	%ToolInfo/TriPointCut.toggled.connect(_on_tripointcut_toggled)
+	%ToolInfo/FaceCut.pressed.connect(_on_facecut_pressed)
+	%ToolInfo/TriPointCut.pressed.connect(_on_tripointcut_pressed)
 
-func _on_facecut_toggled(pressed):
-	if pressed:
-		self.mode = Mode.FACE_CUT
+func end_current():
+	if self.end_function != null:
+		self.end_function.call()
 
-func _on_tripointcut_toggled(pressed):
-	if pressed:
-		self.mode = Mode.TRI_POINT_CUT
-		self.activate_cursors()
+func _on_facecut_pressed():
+	self.end_current()
+	self.facecut_start()
+
+func _on_tripointcut_pressed():
+	self.end_current()
+	self.tripoint_start()
 		
-		%Editor/Selector.disable()
+func facecut_start():
+	self.mode = Mode.FACE_CUT
+	%ToolOpt.set_mode(ToolOpt.Mode.FACE_CUT)
+	self.end_function = facecut_end
+	
+func facecut_end():
+	self.mode = Mode.NONE
+	%ToolOpt.set_mode(ToolOpt.Mode.NONE)
+	self.end_function = null
 		
-	else:
-		self.tripointcut_end()
+func tripoint_start():
+	self.mode = Mode.TRI_POINT_CUT
+	self.complete = false
+	self.activate_cursors()
+	%Editor/Selector.disable()
+	
+	%ToolOpt.set_mode(ToolOpt.Mode.TRI_POINT_CUT)
+	
+	self.end_function = tripointcut_end
 		
 func tripointcut_end():
 	%ToolInfo/TriPointCut.button_pressed = false
 	self.disable_cursors()
 	%Editor/Selector.enable()
 	self.mode = Mode.NONE
+	
+	%ToolOpt.set_mode(ToolOpt.Mode.NONE)
+	
+	self.end_function = null
 
 func _input(event):
 	if event is InputEventMouseMotion:
 		if self.mode == Mode.TRI_POINT_CUT and not complete:
+			self.closest_to_mouse()
+			
+	if event is InputEventKey:
+		if event.keycode == KEY_SHIFT and self.mode == Mode.TRI_POINT_CUT and not complete:
 			self.closest_to_mouse()
 		
 	if event is InputEventMouseButton:
@@ -70,6 +98,7 @@ func next_cursor():
 	if self.cursor_i + 1 < self.cursors.size():
 		self.cursor_i += 1
 		self.cursors[self.cursor_i].visible = true
+		self.closest_to_mouse()
 		return false
 		
 	else:
@@ -79,6 +108,7 @@ func prev_cursor():
 	if self.cursor_i > 0:
 		self.cursors[self.cursor_i].visible = false
 		self.cursor_i -= 1
+		self.closest_to_mouse()
 		return false
 		
 	else:
@@ -101,10 +131,10 @@ func get_hull():
 	return hull
 
 func closest_to_mouse():
+	var viewport = self.get_viewport()
+	var cam = viewport.get_camera_3d()
 	if %RuleManager.current_rule != null:
-		var mouse_position = self.get_viewport().get_mouse_position()
-		var ray_origin = %Cam.project_ray_origin(mouse_position)
-		var ray_end = ray_origin + %Cam.project_ray_normal(mouse_position) * 100
+		var mouse_position = viewport.get_mouse_position()
 
 		var polys = %RuleManager.get_polyhedrons()
 		var closest_dist = 10000000000
@@ -115,10 +145,10 @@ func closest_to_mouse():
 			# Get the closest edge and point
 			var closeness
 			if Input.is_key_pressed(KEY_SHIFT):
-				closeness = poly.get_closest_vertex(ray_origin, ray_end, self.global_transform, true)
+				closeness = poly.get_closest_vertex(mouse_position, self.global_transform, cam, true)
 				
 			else:
-				closeness = poly.get_closest_edge(ray_origin, ray_end, self.global_transform, true)
+				closeness = poly.get_closest_edge(mouse_position, self.global_transform, cam, true)
 				
 			var dist = closeness[0]
 			if dist < closest_dist:

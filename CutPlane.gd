@@ -28,14 +28,15 @@ static func _set_mat(mesh_inst, double_alpha=false):
 	mesh_inst.material_override.flags_transparent = true
 
 # Constructor
-func _init(hull, _poly):
-	self.normal = Geom.calculate_normal(hull)
+func _init(_poly, face_i):
+	self.normal = _poly.face_normal(face_i)
 	self.poly = _poly
 	
 	## Make the larger
-	self.center = Geom.convex_hull_center(hull)
+	self.center = _poly.face_centroid(face_i)
 	
 	# Get vectors to the hull points
+	var hull = _poly.get_hull(face_i)
 	var hull_vec = []
 	for hp in hull:
 		hull_vec.push_back(hp - self.center)
@@ -44,23 +45,40 @@ func _init(hull, _poly):
 	var plane_scale = 1.4
 	var new_hull = []
 	for i in hull.size():
-		new_hull.push_back(hull[i] + (plane_scale - 1) * hull_vec[i])
+		new_hull.push_back(plane_scale * hull_vec[i])
 		
 	self.mesh = Geom.convexhull_to_mesh(new_hull)
+	self.position = self.center
 	
 	## Add a new material
 	CutPlane._set_mat(self)
-
+	
+func closest_to_mouse():
+	var parent_transform = self.get_parent_node_3d().global_transform
+	
+	var viewport = self.get_viewport()
+	var cam = viewport.get_camera_3d()
+	var mouse_position = viewport.get_mouse_position()
+	var ray_origin = cam.project_ray_origin(mouse_position)
+	var ray_end = ray_origin + cam.project_ray_normal(mouse_position) * 10000
+	
+	var cut_plane_a = parent_transform * (self.center + self.normal * 10000)
+	var cut_plane_b = parent_transform * (self.center - self.normal * 10000)
+	
+	var p1 = cam.unproject_position(cut_plane_a)
+	var p2 = cam.unproject_position(cut_plane_b)
+	var screen_position = Geometry2D.get_closest_point_to_segment_uncapped(mouse_position, p1, p2)
+	var screen_origin = cam.project_ray_origin(screen_position)
+	var screen_end = screen_origin + cam.project_ray_normal(screen_position) * 100000
+	
+	var closest_points = Geometry3D.get_closest_points_between_segments(screen_origin, screen_end, cut_plane_a, cut_plane_b)
+	return parent_transform.inverse() * closest_points[0]
+	
 func _input(event):
 	if event is InputEventMouseMotion:
 		if not locked:
-			var mousemov = Vector3(-event.relative.x, event.relative.y, 0)
-			var globnorm = self.to_global(self.normal)
-			globnorm.z = 0
-			
-			var magnitude = -mousemov.dot(globnorm)
-			
-			self.translate(magnitude * self.normal * 0.01)
+			var pos = closest_to_mouse()
+			self.position = pos
 		
 	if event is InputEventMouseButton:
 		if event.pressed:

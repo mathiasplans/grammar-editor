@@ -42,7 +42,8 @@ class AnchorMeta:
 				var next_vi = face[(fi + 1) % face_size]
 				
 				# Create a copy of the polyhedron
-				var copy_poly = self.poly.create_copy(vi, next_vi)
+				var copy_poly = self.poly.create_copy()
+				copy_poly.order_by_anchor(vi, next_vi)
 				
 				# Check if this topology can have the symbol
 				if self.sym.can_be_assigned_to(copy_poly):

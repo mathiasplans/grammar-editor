@@ -1,7 +1,8 @@
+GridContainer
 Button
+HSplitContainer
 Node3D
 MeshInstance3D
-GridContainer
 PanelContainer
 VSplitContainer
 Panel

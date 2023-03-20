@@ -16,8 +16,8 @@ var outline
 var normal = null
 var face_i
 
-@onready var selector = $"/root/Control/HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport/Root/Editor/Selector"
-@onready var cursors = $"/root/Control/HSplitContainer/Left/RuleEditor/SubViewportContainer/SubViewport/Root/Editor/Cursors"
+@onready var selector = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor/Selector"
+@onready var cursors = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor/Cursors"
 
 const cut_key = KEY_C
 const cutplane_script = preload("res://CutPlane.gd")
@@ -158,7 +158,7 @@ func _input(event):
 				if self.cursors.mode == Cursors.Mode.FACE_CUT and self.selector.current_mode == Selector.Mode.FACE and event.keycode == cut_key:
 					# Make sure that a cutting plane doesn't exist already
 					if not self.cut_plane_exists:
-						var cut_plane = CutPlane.new(self.hull, self.poly)
+						var cut_plane = CutPlane.new(self.poly, self.face_i)
 						
 						cut_plane.connect("cut_complete",Callable(self,"_on_cut_complete"))
 						
