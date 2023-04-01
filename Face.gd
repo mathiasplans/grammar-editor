@@ -155,12 +155,33 @@ func _input(event):
 		# Create a cutting plane from selected face
 		if self.selected:
 			if event.pressed:
-				if self.cursors.mode == Cursors.Mode.FACE_CUT and self.selector.current_mode == Selector.Mode.FACE and event.keycode == cut_key:
-					# Make sure that a cutting plane doesn't exist already
+				if self.selector.current_mode == Selector.SelectMode.FACE and event.keycode == cut_key:
+					# Can not make multiple cut planes simultainusly
 					if not self.cut_plane_exists:
-						var cut_plane = CutPlane.new(self.poly, self.face_i)
+						var cut_plane
 						
-						cut_plane.connect("cut_complete",Callable(self,"_on_cut_complete"))
+						# Cut mode
+						print(self.cursors.mode)
+						if self.cursors.mode == Mode.FACE_CUT:
+							cut_plane = CutPlane.from_face(self.poly, self.face_i, Mode.FACE_CUT)
+							
+						elif self.cursors.mode == Mode.PRISM_CUT:
+							cut_plane = CutPlane.from_face(self.poly, self.face_i, Mode.PRISM_CUT)
+							
+						elif self.cursors.mode == Mode.MULTI_CUT:
+							var n = self.cursors.get_multicut_nr()
+							var cps = []
+							for i in n:
+								var cp = CutPlane.from_face(self.poly, self.face_i, Mode.MULTI_CUT)
+								cp.prism_move_at((i + 1) / (n + 1))
+								cps.push_back(cp)
+								
+							self.cursors.add_cuts(cps, self.poly)
+						
+						if cut_plane == null:
+							return
+						
+						cut_plane.cut_complete.connect(self._on_cut_complete)
 						
 						self.cut_plane_exists = true
 						self.create_cut.emit(cut_plane)

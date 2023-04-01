@@ -497,7 +497,7 @@ func _finalize_cut(cut_poly, face_partition, construction):
 # cut = [
 #  [Node:1972],
 #  [0, 1, 2, 3, 8, 9, 10, 11],
-#  [[8, 3, 4, 0.114313], [9, 5, 0, 0.885687], [10, 6, 1, 0.885687], [11, 7, 2, 0.885687]]]
+#  [8: [3, 4, 0.114313], 9: [5, 0, 0.885687], 10: [6, 1, 0.885687], 11: [7, 2, 0.885687]]]
 # ]
 #
 # 1. Polyhedron object
@@ -562,6 +562,57 @@ func cut(plane_point, plane_normal):
 	var cut2 = _finalize_cut(cut_poly, face_partition[1], construction)
 	
 	return [cut1, cut2]
+	
+# [poly, new_translation, construction]
+func multi_cut(cut_points, normals):
+	var mock_translation = []
+	for i in self.vertices.size():
+		mock_translation.push_back(i)
+	
+	var cuts = [[self, mock_translation, {}]]
+	
+	for i in cut_points.size():
+		var cut_point = cut_points[i]
+		var normal = normals[i]
+		
+		var new_cuts = []
+		for c in cuts:
+			var cd = c[0].cut(cut_point, normal)
+			
+			if cd.size() == 1:
+				new_cuts.push_back(c)
+				
+			# Have to inherit parent transformations and constructions
+			else:
+				var parent_trans = c[1]
+				var parent_constr = c[2]
+				var pc_size = parent_constr.size()
+				for nc in cd:
+					var p = nc[0]
+					var trans = nc[1]
+					var constr = nc[2]
+					
+					var new_constr = parent_constr.duplicate(true)
+					for con in constr:
+						var old = constr[con]
+						var new = [parent_trans[old[0]], parent_trans[old[1]], old[2]]
+						new_constr[con + pc_size] = new
+					
+					var new_trans = []
+					for t in trans:
+						# Take from the parent
+						if t < parent_trans.size():
+							new_trans.push_back(parent_trans[t])
+						
+						# Add as constructed vertex
+						else:
+							new_trans.push_back(t + pc_size)
+							
+					new_cuts.push_back([p, new_trans, new_constr])
+		
+		cuts = new_cuts
+		
+	return cuts
 	
 class _set:
 	var _d = {}
@@ -737,7 +788,7 @@ func face_centroid(face_i):
 	var sum = hull.reduce(func(a, b): return a + b)
 	return sum / hull.size()
 
-func get_closest_edge(mouse_position, transform, cam, only_visible=false):
+func get_closest_edge(mouse_position, transform, cam, only_visible=false, grid_len=0):
 	var ray_start = cam.project_ray_origin(mouse_position)
 	var ray_end = ray_start + cam.project_ray_normal(mouse_position) * 10000
 	
@@ -768,13 +819,30 @@ func get_closest_edge(mouse_position, transform, cam, only_visible=false):
 					var screen_start = cam.project_ray_origin(screen_position)
 					var screen_end = screen_start + cam.project_ray_normal(screen_position) * 10000000
 					var closest_points = Geometry3D.get_closest_points_between_segments(screen_start, screen_end, edge_start, edge_end)
-					print(closest_points)
 					closest_dist = d
 					closest_start = start
 					closest_end = end
 					closest_p = transform.inverse() * closest_points[1]
+		
+	if grid_len > 0:
+		var s = self.vertices[closest_start]
+		var e = self.vertices[closest_end]
+		var selen = (s - e).length()
+		var fitness = selen / grid_len
+		grid_len = selen / roundf(fitness)
+		
+		var to_cp = s - closest_p
+		var to_cp_len = to_cp.length()
+		
+		var reminder = fmod(to_cp_len, grid_len)
+		var intended_len = to_cp_len - reminder
+		if reminder > grid_len / 2:
+			intended_len += grid_len
+			
+		var new_to_cp = to_cp.normalized() * intended_len
+		
+		closest_p = s - new_to_cp
 
-	print(closest_dist)
 	return [closest_dist, closest_p, closest_start, closest_end]
 
 func get_closest_vertex(mouse_position, transform, cam, only_visible=false):
@@ -861,8 +929,8 @@ func get_prism_base(base1):
 	# Check if the vecs are parallel
 	for vec_i in vecs.size():
 		var next_vec_i = (vec_i + 1) % vecs.size()
-		var vec1 = vecs[vec_i]
-		var vec2 = vecs[next_vec_i]
+		var vec1 = vecs[vec_i].normalized()
+		var vec2 = vecs[next_vec_i].normalized()
 		
 		if vec1.dot(vec2) < 0.99:
 			return null

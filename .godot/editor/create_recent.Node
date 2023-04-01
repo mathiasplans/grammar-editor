@@ -1,3 +1,6 @@
+SpinBox
+Label
+TextEdit
 GridContainer
 Button
 HSplitContainer
@@ -10,8 +13,6 @@ TextureButton
 HBoxContainer
 VBoxContainer
 LineEdit
-TextEdit
-Label
 TabContainer
 ScrollContainer
 Node

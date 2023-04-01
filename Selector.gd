@@ -10,10 +10,10 @@ signal polyhedron_deselected(polyhedron)
 @onready var anchor_manager = $"../AnchorManager"
 
 # Different modes and their order
-enum Mode {NONE, FACE, ANCHOR, POLY, _amount}
+enum SelectMode {NONE, FACE, ANCHOR, POLY, _amount}
 
 var current = null
-var current_mode : Mode = Mode.FACE
+var current_mode : SelectMode = SelectMode.FACE
 
 var change_direction = 1
 
@@ -82,7 +82,7 @@ const deselect_action = ["_deselect_none_action", "_deselect_face_action", "_des
 func _select_action_call(rule):
 	#print(self.current, " selects   ", self.current_mode)
 	if self.current != null:
-		assert(self.current_mode < Mode._amount)
+		assert(self.current_mode < SelectMode._amount)
 		self.call(self.select_action[self.current_mode], self.current, rule)
 		
 	# End the anchor move procedure
@@ -92,7 +92,7 @@ func _select_action_call(rule):
 func _deselect_action_call(rule):
 	#print(self.current, " deselects ", self.current_mode)
 	if self.current != null:
-		assert(self.current_mode < Mode._amount)
+		assert(self.current_mode < SelectMode._amount)
 		self.call(self.deselect_action[self.current_mode], self.current, rule)
 		
 	self.nosig_desel = false
@@ -105,24 +105,24 @@ func select(face, rule=%RuleManager.current_rule):
 	
 	if face != self.current:
 		self.current = face
-		current_mode = Mode.NONE
+		current_mode = SelectMode.NONE
 		
 	# Progress current mode
 	if self.face_mode:
-		if self.current_mode == Mode.FACE:
-			self.current_mode = Mode.NONE
+		if self.current_mode == SelectMode.FACE:
+			self.current_mode = SelectMode.NONE
 			
 		else:
-			self.current_mode = Mode.FACE
+			self.current_mode = SelectMode.FACE
 		
 	else:
-		self.current_mode = (self.current_mode + change_direction) as Mode 
+		self.current_mode = (self.current_mode + change_direction) as SelectMode 
 		
-		if self.current_mode == Mode.ANCHOR and (face.poly.symbol == null or face.poly.original or face.face_i != 0):
-			self.current_mode = (self.current_mode + change_direction) as Mode 
+		if self.current_mode == SelectMode.ANCHOR and (face.poly.symbol == null or face.poly.original or face.face_i != 0):
+			self.current_mode = (self.current_mode + change_direction) as SelectMode 
 			
 		# Overflow
-		self.current_mode = ((self.current_mode + Mode._amount) % Mode._amount) as Mode
+		self.current_mode = ((self.current_mode + SelectMode._amount) % SelectMode._amount) as SelectMode
 	
 	self._select_action_call(rule)
 	
@@ -137,16 +137,16 @@ func select_clear(face=null, rule=%RuleManager.current_rule):
 		self._deselect_action_call(rule)
 		
 		self.current = face
-		current_mode = Mode.NONE
+		current_mode = SelectMode.NONE
 		
 		self._select_action_call(rule)
 
 func select_face(face, rule=%RuleManager.current_rule):
-	if self.enabled and not _same_mode(face, Mode.FACE):
+	if self.enabled and not _same_mode(face, SelectMode.FACE):
 		self._deselect_action_call(rule)
 		
 		self.current = face
-		current_mode = Mode.FACE
+		current_mode = SelectMode.FACE
 		
 		self._select_action_call(rule)
 		
@@ -155,11 +155,11 @@ func select_anchor(face, rule=%RuleManager.current_rule):
 		self.select_clear(null, rule)
 		return
 	
-	if self.enabled and not _same_mode(face, Mode.ANCHOR):
+	if self.enabled and not _same_mode(face, SelectMode.ANCHOR):
 		self._deselect_action_call(rule)
 		
 		self.current = face
-		current_mode = Mode.ANCHOR
+		current_mode = SelectMode.ANCHOR
 		
 		self._select_action_call(rule)
 	
@@ -168,11 +168,11 @@ func select_poly(face, rule=%RuleManager.current_rule):
 		self.select_clear(null, rule)
 		return
 	
-	if self.enabled and not _same_mode_poly(face, Mode.POLY):
+	if self.enabled and not _same_mode_poly(face, SelectMode.POLY):
 		self._deselect_action_call(rule)
 		
 		self.current = face
-		current_mode = Mode.POLY
+		current_mode = SelectMode.POLY
 		
 		self._select_action_call(rule)
 		
@@ -196,7 +196,7 @@ func _input(event):
 			else:
 				self.change_direction = 1
 				
-		if self.current_mode == Mode.ANCHOR:
+		if self.current_mode == SelectMode.ANCHOR:
 			if event.pressed and event.keycode == KEY_COMMA:
 				var poly = self.current.poly
 				self.select_clear()

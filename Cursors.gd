@@ -1,10 +1,9 @@
 extends Node3D
 class_name Cursors
 
-signal create_cut(cut_plane)
+signal create_cut(cut_plane, poly)
 
-enum Mode {NONE, FACE_CUT, TRI_POINT_CUT}
-var mode : Mode = Mode.FACE_CUT
+var mode = Mode.NONE
 
 @onready var cursors = [$Cursor1, $Cursor2, $Cursor3]
 var cursor_i = 0
@@ -13,53 +12,78 @@ var cursor_polys = [null, null, null]
 var complete = false
 var poly
 
-var end_function = null
-
-func _ready():
-	%ToolInfo/FaceCut.pressed.connect(_on_facecut_pressed)
-	%ToolInfo/TriPointCut.pressed.connect(_on_tripointcut_pressed)
-
-func end_current():
-	if self.end_function != null:
-		self.end_function.call()
-
-func _on_facecut_pressed():
-	self.end_current()
-	self.facecut_start()
-
-func _on_tripointcut_pressed():
-	self.end_current()
-	self.tripoint_start()
-		
-func facecut_start():
-	self.mode = Mode.FACE_CUT
-	%ToolOpt.set_mode(ToolOpt.Mode.FACE_CUT)
-	self.end_function = facecut_end
+func _ready():	
+	%ToolOpt.mode_changed.connect(_on_mode_change)
 	
-func facecut_end():
-	self.mode = Mode.NONE
-	%ToolOpt.set_mode(ToolOpt.Mode.NONE)
-	self.end_function = null
+func _on_mode_change(_mode, _old_mode):
+	# End function for current mode
+	self.end_functions[self.mode].call()
+	
+	# Change the mode
+	self.mode = _mode
+	
+	# Start function for the new mode
+	self.start_functions[self.mode].call()
+	
+func none_start():
+	pass
+	
+func none_end():
+	pass
+		
+func face_start():
+	pass
+	
+func face_end():
+	pass
 		
 func tripoint_start():
-	self.mode = Mode.TRI_POINT_CUT
 	self.complete = false
 	self.activate_cursors()
 	%Editor/Selector.disable()
-	
-	%ToolOpt.set_mode(ToolOpt.Mode.TRI_POINT_CUT)
-	
-	self.end_function = tripointcut_end
 		
-func tripointcut_end():
-	%ToolInfo/TriPointCut.button_pressed = false
+func tripoint_end():
 	self.disable_cursors()
 	%Editor/Selector.enable()
-	self.mode = Mode.NONE
 	
-	%ToolOpt.set_mode(ToolOpt.Mode.NONE)
+func test_start():
+	pass
 	
-	self.end_function = null
+func test_end():
+	pass
+	
+func prism_start():
+	pass
+	
+func prism_end():
+	pass
+	
+func multi_start():
+	pass
+	
+func multi_end():
+	pass
+	
+var start_functions = {
+	Mode.NONE:            none_start,
+	Mode.TEST:            test_start,
+	Mode.FACE_CUT:        face_start,
+	Mode.TRI_POINT_CUT:   tripoint_start,
+	Mode.PRISM_CUT:       prism_start,
+	Mode.MULTI_CUT:       multi_start
+}
+
+var end_functions = {
+	Mode.NONE:            none_end,
+	Mode.TEST:            test_end,
+	Mode.FACE_CUT:        face_end,
+	Mode.TRI_POINT_CUT:   tripoint_end,
+	Mode.PRISM_CUT:       prism_end,
+	Mode.MULTI_CUT:       multi_end
+}
+
+func end_current_mode():
+	%ToolOpt.end_mode()
 
 func _input(event):
 	if event is InputEventMouseMotion:
@@ -81,7 +105,7 @@ func _input(event):
 					
 					if self.complete:
 						self.on_tripointcut_complete()
-						self.tripointcut_end()
+						self.end_current_mode()
 					
 				elif event.button_index == MOUSE_BUTTON_RIGHT:
 					self.complete = false
@@ -148,7 +172,10 @@ func closest_to_mouse():
 				closeness = poly.get_closest_vertex(mouse_position, self.global_transform, cam, true)
 				
 			else:
-				closeness = poly.get_closest_edge(mouse_position, self.global_transform, cam, true)
+				var snap_to_grid = 0
+				if Input.is_key_pressed(KEY_CTRL):
+					snap_to_grid = 0.1
+				closeness = poly.get_closest_edge(mouse_position, self.global_transform, cam, true, snap_to_grid)
 				
 			var dist = closeness[0]
 			if dist < closest_dist:
@@ -159,7 +186,13 @@ func closest_to_mouse():
 		if closest_p != null:
 			self.cursors[self.cursor_i].position = closest_p
 			self.cursor_polys[self.cursor_i] = closest_poly
+			
+func add_cuts(cuts, poly):
+	self.create_cut.emit(cuts, poly)
 
 func on_tripointcut_complete():
-	var cut_plane = CutPlane.new(self.get_hull(), self.poly)
-	self.create_cut.emit(cut_plane)
+	var cut_plane = CutPlane.from_hull(self.poly, self.get_hull(), Mode.TRI_POINT_CUT)
+	self.create_cut.emit([cut_plane], self.poly)
+	
+func get_multicut_nr():
+	return %ToolOpt/MultiCutOpt/SpinBox.value

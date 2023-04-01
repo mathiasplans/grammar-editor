@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://b05ly8tkkyqbc"]
+[gd_scene load_steps=20 format=3 uid="uid://b05ly8tkkyqbc"]
 
 [ext_resource type="Script" path="res://Root.gd" id="1"]
 [ext_resource type="Script" path="res://ToolOpt.gd" id="1_ac0rl"]
@@ -34,6 +34,21 @@ func _on_rule_change(_old_rule, _created):
 		
 	else:
 		self.icon  =self.not_compiled_icon
+"
+
+[sub_resource type="GDScript" id="GDScript_wcrj7"]
+script/source = "extends SpinBox
+
+# This script only exists because the line edit does not
+# relinquish the focus on submission
+
+@onready var line = self.get_line_edit()
+
+func _ready():
+	self.line.text_submitted.connect(_on_text_submitted)
+	
+func _on_text_submitted(new_text):
+	self.line.release_focus()
 "
 
 [sub_resource type="Environment" id="1"]
@@ -154,8 +169,8 @@ func add_rotation(poly, rotation):
 	$TreeManager.add_rotation(poly, rotation)
 	self._edited()
 	
-func add_branch(cut, parent_treeitem, cut_plane, text, sym):
-	$TreeManager.create_child_item(cut, parent_treeitem, cut_plane, text, sym)
+func add_branch(cut, parent_treeitem, cut_planes, text, sym):
+	$TreeManager.create_child_item(cut, parent_treeitem, cut_planes, text, sym)
 	self._edited()
 	
 func compile(rule=self.current_rule):
@@ -277,6 +292,7 @@ class TreeMeta:
 	var epsilon = false
 	var leaf = true
 	var other_hidden = VIS_VISIBLE
+	var cut_type = Mode.NONE
 	
 	var parent_indices = []
 	var constructions = []
@@ -346,7 +362,7 @@ func set_tree(tree):
 		self.current_tree = tree
 		%TreeParent.add_child(self.current_tree)
 	
-func create_child_item(cut, parent_poly, cut_plane, text, sym=null):
+func create_child_item(cut, parent_poly, cut_planes, text, sym=null):
 	var parent_treeitem = %RuleManager.get_treeitem(parent_poly)
 	
 	var poly = cut[0]
@@ -361,7 +377,7 @@ func create_child_item(cut, parent_poly, cut_plane, text, sym=null):
 	
 	var tm = TreeMeta.new()
 	tm.poly = poly
-	tm.parent_split = cut_plane
+	tm.parent_split = cut_planes
 	tm.parent_indices = pos
 	tm.constructions = construction
 	
@@ -395,6 +411,7 @@ func add_split(poly, split):
 	var item = %RuleManager.get_treeitem(poly)
 	var tm = item.get_metadata(TREE_META)
 	tm.split = split
+	tm.cut_type = split.cut_mode
 	
 	self.tree_edited.emit()
 	
@@ -548,17 +565,39 @@ func _get_grammar_rule(item, parent_global_indices, rule_object):
 			
 		vert_rotation = new_rotation
 	
+	# Construct new vertices.
+	# This has to be done before the local_to_global because
+	# some vertices that need to be constructed are not
+	# in parent_indices.
+	var cons = {}
+	for i in tm.constructions:
+		var inter_data = tm.constructions[i]
+		
+		var global_a
+		var global_b
+		
+		if cons.has(inter_data[0]):
+			global_a = cons[inter_data[0]]
+				
+		else:
+			global_a = parent_global_indices[inter_data[0]]
+			
+		if cons.has(inter_data[1]):
+			global_b = cons[inter_data[1]]
+			
+		else:
+			global_b = parent_global_indices[inter_data[1]]
+		
+		var new_index = rule_object.add_interpolated_vertex(global_a, global_b, inter_data[2])
+		cons[i] = new_index
+	
 	# Get the global indices of the local poly
 	var local_to_global = []
 	for i in tm.parent_indices:
 		# The vertex has to be constructed (a cut vertex)
 		if tm.constructions.has(i):
-			var inter_data = tm.constructions[i]
-			var global_a = parent_global_indices[inter_data[0]]
-			var global_b = parent_global_indices[inter_data[1]]
-			var new_index = rule_object.add_interpolated_vertex(global_a, global_b, inter_data[2])
+			var new_index = cons[i]
 			local_to_global.push_back(new_index)
-			pass
 			
 		# The vertex is inherited from the parent
 		else:
@@ -939,49 +978,57 @@ func _on_create_cut(cut_plane):
 	# Subscribe to the cut completion callback
 	cut_plane.cut_complete.connect(_on_cut_complete)
 
-func _add_child_polyhedron(cut, parent_treeitem, cut_plane, text, sym=null):
+func _add_child_polyhedron(cut, parent_treeitem, cut_planes, text, sym=null):
 	# Update the tree
-	%RuleManager.add_branch(cut, parent_treeitem, cut_plane, text, sym)
+	%RuleManager.add_branch(cut, parent_treeitem, cut_planes, text, sym)
 	
 	# Add new meshes
 	var new_poly = cut[0]
 	self.poly_to_meshes(new_poly)
 	
-func _cut_poly(cut_plane, poly):
-	var cutdata = poly.cut(cut_plane.point(), cut_plane.normal)
+func _cut_poly(cut_planes, poly):
+	var points = []
+	var normals = []
+	
+	for cut_plane in cut_planes:
+		points.push_back(cut_plane.point())
+		normals.push_back(cut_plane.normal)
+	
+	var cutdata = poly.multi_cut(points, normals)
 	
 	# No cut was made, do nothing
 	if cutdata.size() == 1:
 		# Flag the cut_plane to delete itself
-		cut_plane.delete = true
+		for cut_plane in cut_planes:
+			cut_plane.delete = true
+			
 		return
 
 	# Free the old meshes
 	%RuleManager.erase_meshes(poly)
 	%RuleManager.remove_leafness(poly)
 	
-	if cut_plane.poly == poly:
-		%RuleManager.add_split(poly, cut_plane)
+	for cut_plane in cut_planes:
+		if cut_plane.poly == poly:
+			%RuleManager.add_split(poly, cut_plane)
 
 	# Handle new polyhedrons
-	var cut1 = cutdata[0]
-	var cut2 = cutdata[1]
-	
-	self._add_child_polyhedron(cut1, poly, cut_plane, \"B\")
-	self._add_child_polyhedron(cut2, poly, cut_plane, \"C\")
+	for cut in cutdata:
+		self._add_child_polyhedron(cut, poly, cut_planes, \"B\")
 
 # On the cut completion, cut the polygon
-func _on_cut_complete(cut_plane):
+func _on_cut_complete(cut_planes, _poly):
 	if self.global_cut.button_pressed:
 		var leaves = %RuleManager.get_leaf_polys().duplicate()
 		for leaf in leaves:
-			self._cut_poly(cut_plane, leaf)		
+			self._cut_poly(cut_planes, leaf)		
 		
 	else:
-		self._cut_poly(cut_plane, cut_plane.poly)
+		self._cut_poly(cut_planes, _poly)
 	
 	# Hide the cut
-	cut_plane.visible = false
+	for cut_plane in cut_planes:
+		cut_plane.visible = false
 	
 func _on_compile_button_press():
 	var _grammar_rule = %RuleManager.compile()
@@ -1156,12 +1203,23 @@ layout_mode = 2
 
 [node name="ApplyRule" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolOpt/TestOpt"]
 layout_mode = 2
-disabled = true
 text = "New Gen"
 
 [node name="PrismCutOpt" type="GridContainer" parent="HSplitContainer/Left/RuleEditor/ToolOpt"]
 visible = false
 layout_mode = 2
+
+[node name="MultiCutOpt" type="GridContainer" parent="HSplitContainer/Left/RuleEditor/ToolOpt"]
+visible = false
+layout_mode = 2
+
+[node name="SpinBox" type="SpinBox" parent="HSplitContainer/Left/RuleEditor/ToolOpt/MultiCutOpt"]
+layout_mode = 2
+min_value = 1.0
+max_value = 10.0
+value = 1.0
+suffix = "cuts"
+script = SubResource("GDScript_wcrj7")
 
 [node name="ToolsView" type="HSplitContainer" parent="HSplitContainer/Left/RuleEditor"]
 layout_mode = 2
@@ -1183,6 +1241,10 @@ text = "3 point cut"
 [node name="PrismCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
 text = "Prism Cut"
+
+[node name="MultiCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
+layout_mode = 2
+text = "Multi Cut"
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="HSplitContainer/Left/RuleEditor/ToolsView"]
 layout_mode = 2
