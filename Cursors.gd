@@ -191,8 +191,8 @@ func add_cuts(cuts, poly):
 	self.create_cut.emit(cuts, poly)
 
 func on_tripointcut_complete():
-	var cut_plane = CutPlane.from_hull(self.poly, self.get_hull(), Mode.TRI_POINT_CUT)
-	self.create_cut.emit([cut_plane], self.poly)
+	var cut_plane = CutPlane.from_hull(null, self.get_hull(), Mode.TRI_POINT_CUT)
+	self.create_cut.emit([cut_plane], null)
 	
 func get_multicut_nr():
 	return %ToolOpt/MultiCutOpt/SpinBox.value

@@ -14,6 +14,7 @@ var center : Vector3
 var other_center : Vector3
 var delete = false
 var fixed_translation = Vector3(0, 0, 0)
+var hull
 
 var cut_mode = Mode.NONE
 
@@ -49,6 +50,8 @@ static func _hull_to_cutplane(new_plane, hull):
 	new_plane.position = new_plane.center
 	
 	new_plane.fixed_translation = new_plane.position
+	
+	new_plane.hull = hull
 	
 	## Add a new material
 	CutPlane._set_mat(new_plane)

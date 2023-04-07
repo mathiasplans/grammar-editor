@@ -972,3 +972,44 @@ func get_wireframe():
 				done[[a, b]] = true
 	
 	return mesh.commit()
+	
+func intersects_face(face):
+	var normal = Geom.calculate_normal(face)
+	var r0 = face[0]
+	var e1 = (face[1] - face[0]).normalized()
+	var e2 = normal.cross(e1).normalized()
+	
+	var cpoints = _cut_points(face[0], normal)
+	
+	# Project the cut points onto the plane
+	var points = []
+	for cp in cpoints:
+		var point3d = cpoints[cp][1]
+		
+		var d = point3d - r0
+		var t1 = e1.dot(d)
+		var t2 = e2.dot(d)
+		
+		var point2d = Vector2(t1, t2)
+		
+		points.push_back(point2d)
+		
+	var cut_polygon = Geometry2D.convex_hull(PackedVector2Array(points))
+	
+	# Project the face onto the plane
+	points = []
+	for p in face:
+		var d = p - r0
+		var t1 = e1.dot(d)
+		var t2 = e2.dot(d)
+		
+		var point2d = Vector2(t1, t2)
+		
+		points.push_back(point2d)
+		
+	var face_polygon = PackedVector2Array(points)
+	
+	# See if they intersect
+	var intersections = Geometry2D.intersect_polygons(cut_polygon, face_polygon)
+	
+	return intersections.size() != 0

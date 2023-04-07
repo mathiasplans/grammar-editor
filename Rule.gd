@@ -25,6 +25,9 @@ func is_empty():
 func set_meshes(poly, mesh_instances):
 	self.meshes[poly] = mesh_instances
 	
+	if self.leaf_polys.keys().size() == 0:
+		self.set_leafness(poly)
+	
 func get_meshes(poly):
 	return self.meshes[poly]
 	

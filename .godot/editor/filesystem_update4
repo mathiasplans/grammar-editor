@@ -1,10 +1,8 @@
 res://default_env.tres
 res://Control.tscn
-res://CutPlane.gd
-res://Face.gd
 res://Cursors.gd
+res://Polyhedron.gd
+res://CutPlane.gd
 res://RuleSelector.tscn
 res://SymbolRules.tscn
-res://Polyhedron.gd
-res://ToolOpt.gd
-res://CutMode.gd
+res://Rule.gd

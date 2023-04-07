@@ -1021,10 +1021,21 @@ func _on_cut_complete(cut_planes, _poly):
 	if self.global_cut.button_pressed:
 		var leaves = %RuleManager.get_leaf_polys().duplicate()
 		for leaf in leaves:
-			self._cut_poly(cut_planes, leaf)		
+			self._cut_poly(cut_planes, leaf)
+		
+	elif _poly is Polyhedron:
+		self._cut_poly(cut_planes, _poly)
 		
 	else:
-		self._cut_poly(cut_planes, _poly)
+		var leaves = %RuleManager.get_leaf_polys().duplicate()
+		for leaf in leaves:
+			var new_cut_planes = []
+			for cut_plane in cut_planes:
+				if leaf.intersects_face(cut_plane.hull):
+					new_cut_planes.push_back(cut_plane)
+					
+			if new_cut_planes.size() > 0:
+				self._cut_poly(new_cut_planes, leaf)
 	
 	# Hide the cut
 	for cut_plane in cut_planes:
