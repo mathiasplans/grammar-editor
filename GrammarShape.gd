@@ -4,6 +4,10 @@ class_name GrammarShape
 var symbol = null
 var vertices = []
 
+# Persistant:
+# * symbol
+# * vertices
+
 func _init(_symbol, _vertices):
 	self.symbol = _symbol
 	self.vertices = _vertices

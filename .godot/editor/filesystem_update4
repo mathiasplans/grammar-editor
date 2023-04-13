@@ -6,3 +6,8 @@ res://CutPlane.gd
 res://RuleSelector.tscn
 res://SymbolRules.tscn
 res://Rule.gd
+res://Anchor.gd
+res://Face.gd
+res://GrammarSymbolMaker.gd
+res://GrammarShape.gd
+res://Symbol.gd

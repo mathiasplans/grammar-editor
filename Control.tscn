@@ -64,11 +64,15 @@ class_name RuleManager
 
 signal rule_changed(old_rule, created)
 signal rule_edited(rule)
+signal symbol_displayed(symbol, display)
 
 var current_symbol
 var rules = {}
 var current_rule
 var rule_i = 0
+
+# Persistant:
+# * rules
 
 func _ready():	
 	# Connect signals
@@ -134,13 +138,28 @@ func set_to_no_rule():
 
 func set_to_rule(symbol, index):
 	var replacement_rule = self.rules[[symbol, index]]
+	var old_symbol = self.current_symbol
 	var old_rule = self.current_rule
 	self.current_rule = replacement_rule
 	self.rule_i = index
 	self.current_symbol = symbol
 	$TreeManager.set_tree(self.current_rule.split_tree)
 	
+	self.symbol_displayed.emit(old_symbol, false)
 	self.rule_changed.emit(old_rule, self.current_rule.is_empty())
+	
+func set_to_symbol(symbol):
+	var old_symbol = self.current_symbol
+	var old_rule = self.current_rule
+	self.current_rule = null
+	self.rule_i = 0
+	self.current_symbol = symbol
+	$TreeManager.remove_tree()
+	
+	self.rule_changed.emit(old_rule, false)
+	
+	self.symbol_displayed.emit(old_symbol, false)
+	self.symbol_displayed.emit(symbol, true)
 	
 func is_compiled():
 	return self.current_rule != null and self.current_rule.compiled
@@ -215,10 +234,6 @@ func remove_leafness(poly, rule=self.current_rule):
 func is_leaf(poly, rule=self.current_rule):
 	return rule.is_leaf(poly)
 	
-func add_cut(cut, rule=self.current_rule):
-	rule.add_cut(cut)
-	self._edited(rule)
-	
 func get_leaf_polys(rule=self.current_rule):
 	return rule.get_leaf_polys()
 
@@ -273,6 +288,11 @@ var current_tree
 var tree_symbols = {}
 var tree_to_rule = {}
 
+# Persistant:
+# * trees
+# * tree_symbols
+# * tree_to_rule
+
 func _ready():
 	%Editor/Selector.polyhedron_selected.connect(_on_polyhedron_selected)
 	%Editor/Selector.polyhedron_deselected.connect(_on_polyhedron_deselect)
@@ -283,7 +303,7 @@ func _ready():
 
 func _hidden_button_change(treeitem, tm):
 	treeitem.set_button(TREE_BUTTONS, BUTTON_HIDE, hidden_to_tex[tm.hidden])
-	
+
 class TreeMeta:
 	var poly = null
 	var split = null
@@ -298,6 +318,17 @@ class TreeMeta:
 	var constructions = []
 	
 	var rotations = []
+	
+# Persistant:
+# * poly
+# * split
+# * parent_split
+# * epsilon
+# * leaf
+# * cut-type
+# * parent_indices
+# * constructions
+# * rotations
 	
 static func _treeitem_setup(item, metadata, text):
 	item.add_button(TREE_BUTTONS, button_epsilon_not, BUTTON_EPSILON)
@@ -942,6 +973,10 @@ func draw_rule():
 		
 	else:
 		self.compile_button.disabled = true
+		
+func draw_symbol():
+	if %RuleManager.symbol != null:
+		pass
 	
 func go_blank():
 	self.compile_button.disabled = true
@@ -954,6 +989,7 @@ func _ready():
 	$AnchorManager.polyhedron_reordered.connect(self._on_poly_reorder)
 	
 	%RuleManager.rule_changed.connect(self._on_rule_change)
+	%RuleManager.symbol_displayed.connect(self._on_symbol_display)
 	
 	$Cursors.create_cut.connect(self._on_cut_complete)
 	
@@ -969,9 +1005,6 @@ func _input(event):
 # When a cut has been made, add the cutting plane
 # mesh as a child and connect the 'cut_complete' signal
 func _on_create_cut(cut_plane):
-	# Register the cut for the shape TODO: do it in cut complete instead
-	%RuleManager.add_cut(cut_plane)
-	
 	# Make the cut plane rotate with the poly
 	%RuleManager.current_rule.add_child(cut_plane)
 	
@@ -1073,6 +1106,17 @@ func _on_rule_change(old_rule, created):
 
 	# Add new meshes
 	self.draw_rule()
+
+func _on_symbol_display(symbol, display):
+	if symbol != null:
+		var symbol_object = %Symbols.get_symbol_object(symbol)
+		if not display:
+			var parent = symbol_object.get_parent()
+			if parent == $Meshes:
+				$Meshes.remove_child(symbol_object)
+				
+		else:
+			$Meshes.add_child(symbol_object)
 "
 
 [sub_resource type="SphereMesh" id="SphereMesh_4nkvx"]
@@ -1118,6 +1162,8 @@ func create_symbol(poly, name=null):
 	# Change the ordering of the elements
 	var instance_i = new_symbol_rules.get_index()
 	%SymbolRules.move_child(new_symbol_rules, instance_i - 1)
+	
+	%RuleManager.set_to_symbol(sym)
 
 func _pressed():
 	# Create a cube for now
@@ -1136,8 +1182,8 @@ func _on_rule_delete(symbol, index):
 func _on_symbol_rename(symbol, new_text):
 	%Symbols.rename(symbol, new_text)
 	
-func _on_symbol_select(_symbol):
-	pass
+func _on_symbol_select(symbol):
+	%RuleManager.set_to_symbol(symbol)
 	
 func _on_symbol_delete(symbol):
 	%Symbols.delete_symbol(symbol)
@@ -1243,11 +1289,11 @@ layout_mode = 2
 
 [node name="FaceCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
-text = "Face cut"
+text = "Face Cut"
 
 [node name="TriPointCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
-text = "3 point cut"
+text = "3-Point Cut"
 
 [node name="PrismCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
@@ -1267,7 +1313,7 @@ script = ExtResource("2")
 [node name="SubViewport" type="SubViewport" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer"]
 handle_input_locally = false
 physics_object_picking = true
-size = Vector2i(749, 376)
+size = Vector2i(746, 376)
 render_target_update_mode = 4
 
 [node name="Cam" type="Camera3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport"]
@@ -1363,7 +1409,7 @@ custom_minimum_size = Vector2(70, 70)
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
-text = "+"
+text = "New Symbol"
 script = SubResource("GDScript_r1mpe")
 
 [node name="PanelContainer" type="PanelContainer" parent="HSplitContainer/Left/VSplitContainer"]

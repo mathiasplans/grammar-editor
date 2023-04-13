@@ -16,6 +16,14 @@ var cut_face_to_face = {}
 var symbol = null
 var original = false
 
+# Persistant:
+# * vertices
+# * directed
+# * faces
+#   - from these three, call complete()
+# * symbol
+# * original
+
 func _init(_symbol=null):
 	self.symbol = _symbol
 

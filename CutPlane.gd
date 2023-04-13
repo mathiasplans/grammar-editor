@@ -1,6 +1,6 @@
 extends MeshInstance3D
 class_name CutPlane
-signal cut_complete(cut_plane)
+signal cut_complete(cut_plane, poly)
 
 # Declare member variables here. Examples:
 # var a = 2

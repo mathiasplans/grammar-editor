@@ -1,7 +1,6 @@
 extends Node3D
 class_name Rule
 
-var cuts = []
 var meshes = {}
 var split_tree = null
 var split_root = null
@@ -16,6 +15,16 @@ var compiled = false
 
 var anchors = {}
 
+# Persistant:
+# * split_tree
+# * split_root
+# * poly_to_treeitem
+# * leaf_polys -> meshes
+# * lhs
+# * lhs_poly
+# * index
+# * anchors (keys)
+
 func _init(_index):
 	self.index = _index
 	
@@ -27,6 +36,11 @@ func set_meshes(poly, mesh_instances):
 	
 	if self.leaf_polys.keys().size() == 0:
 		self.set_leafness(poly)
+		
+		# Add the anchor visualization
+		var new_anchor = Anchor.new(0, 1, poly, 0, 0.15, 0.76)
+		
+		self.add_child(new_anchor)
 	
 func get_meshes(poly):
 	return self.meshes[poly]
@@ -60,9 +74,6 @@ func remove_leafness(poly):
 	
 func is_leaf(poly):
 	return self.leaf_polys.has(poly)
-	
-func add_cut(cut):
-	self.cuts.push_back(cut)
 	
 func get_leaf_polys():
 	return self.leaf_polys.keys()

@@ -1,11 +1,14 @@
 extends MeshInstance3D
 class_name Anchor
 
-const ab_len = 0.2
-const ac_len = ab_len * 768 / 634
+
 const anchor_tex = preload("res://icons/anchor.png")
-const unselected_col = Color(0, 0, 0, 1)
-const selected_col = Color(0, 1, 0, 1)
+
+var unselected_col = Color(0, 0, 0, 1)
+var selected_col = Color(0, 1, 0, 1)
+
+var ab_len = 0.2
+var ac_len
 
 var ai
 var bi
@@ -13,9 +16,14 @@ var face_i
 var poly
 var selected
 
-func _init(_ai,_bi,_poly,_face_i):
+func _init(_ai, _bi, _poly, _face_i, alpha=1, _ab_len=0.2):
 	self.face_i = _face_i
 	self.poly = _poly
+	self.ab_len = _ab_len
+	self.ac_len = self.ab_len * 768 / 634
+	
+	self.unselected_col.a = alpha
+	self.selected_col.a = alpha
 	
 	# Calculate normal
 	var na = self.poly.vertices[self.poly.faces[_face_i][0]]

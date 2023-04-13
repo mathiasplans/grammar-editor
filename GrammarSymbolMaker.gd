@@ -7,9 +7,17 @@ signal symbol_renamed(old_text, new_text)
 var symbols = {}
 var symbols_id = {}
 var default_shape = {}
+var symbol_objects = {}
 
 var index_counter = 0
 var non_terminal_index_counter = 0
+
+# Persistant:
+# * symbols
+# * symbols_id
+# * default_shape
+# * index_counter
+# * non_terminal_index_counter
 
 func _poly_to_symbol(poly, _terminal=true):
 	assert(poly.is_ordered(), "The polygon has to be ordered by anchor first before it can be turned into a symbol")
@@ -52,6 +60,9 @@ func from_polyhedron(poly, _terminal=true):
 	
 	# Create a default shape object
 	self.default_shape[unique_symbol] = GrammarShape.new(unique_symbol, poly.vertices)
+	
+	# Symbol object (to be rendered)
+	self.symbol_objects[unique_symbol] = Symbol.new(unique_symbol)
 	
 	if not _terminal:
 		self.symbol_created.emit(unique_symbol)
@@ -99,3 +110,6 @@ func get_symbols():
 		symbol_list.push_back(self.symbols[key])
 		
 	return symbol_list
+	
+func get_symbol_object(symbol):
+	return self.symbol_objects[symbol]
