@@ -43,10 +43,10 @@ func from_polyhedron(poly, _terminal=true):
 	# Name the symbol
 	var new_name 
 	if _terminal:
-		new_name = "Terminal %d" % self.index_counter
+		new_name = "T%d" % self.index_counter
 		
 	else:
-		new_name = "Symbol %d" % self.non_terminal_index_counter
+		new_name = "S%d" % self.non_terminal_index_counter
 		self.non_terminal_index_counter += 1
 		
 	unique_symbol.text = new_name

@@ -101,7 +101,7 @@ func _pressed():
 	instance.selected.connect(_on_rule_selected)
 	instance.deleted.connect(_on_rule_deleted)
 	
-	instance.rename(\"Rule %d\" % instance.index)
+	instance.rename(\"R%d\" % instance.index)
 
 func _on_rule_selected(index):
 	self.rule_selected.emit(index)

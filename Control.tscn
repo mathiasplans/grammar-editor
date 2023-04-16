@@ -128,6 +128,9 @@ func remove_rule(symbol, index):
 	rule.queue_free()
 	self.rules.erase([symbol, index])
 	
+func get_rule():
+	return self.current_rule
+	
 func set_to_no_rule():
 	var old_rule = self.current_rule
 	self.current_rule = null
@@ -238,7 +241,7 @@ func get_leaf_polys(rule=self.current_rule):
 	return rule.get_leaf_polys()
 
 func add_anchor(poly, anchor, rule=self.current_rule):
-	if self.get_anchor(poly) == null:
+	if self.get_anchor(poly, rule) == null:
 		rule.add_anchor(poly, anchor)
 		rule.add_child(anchor)
 		self._edited(rule)
@@ -536,8 +539,11 @@ func _on_tree_button(item, column, id, _mouse_button_index):
 			self._treeitem_epsilonize(item, not tm.epsilon)
 			
 		elif id == BUTTON_CREATE_SYMBOL:
-			%AddSymbol.create_symbol(tm.poly, item.get_text(TREE_SYMBOL))
+			var rule = %RuleManager.get_rule()
 			self._on_item_edited(item)
+			%AddSymbol.create_symbol(tm.poly, item.get_text(TREE_SYMBOL))
+			self.anchor_update(item, rule)
+			
 
 func _on_tree_selected():
 	var selected_item = self.current_tree.get_selected()
@@ -688,11 +694,7 @@ func _remove_anchor(rule, treeitem, sym):
 	if self.tree_symbols.has(self.current_tree):
 		self.tree_symbols[self.current_tree][sym].erase(treeitem)
 
-# TODO: more locally near anchor manager
-func _on_item_edited(item=null):
-	if item == null:
-		item = self.current_tree.get_edited()
-
+func anchor_update(item, rule=null):
 	var new_text = item.get_text(TREE_SYMBOL)
 	var tm = item.get_metadata(TREE_META)
 	
@@ -706,10 +708,15 @@ func _on_item_edited(item=null):
 			tm.poly.symbol = sym
 
 			var anchor_node = %Editor/AnchorManager.add_poly(tm.poly, sym)
-			%RuleManager.add_anchor(tm.poly, anchor_node)
 			
-			self.tree_symbols[self.current_tree][sym].push_back(item)
-			
+			if rule == null:
+				%RuleManager.add_anchor(tm.poly, anchor_node)
+				self.tree_symbols[self.current_tree][sym].push_back(item)
+				
+			else:
+				%RuleManager.add_anchor(tm.poly, anchor_node, rule)
+				self.tree_symbols[rule.split_tree][sym].push_back(item)
+		
 		self.disable_create_symbol(item)
 		
 	# Change from a symbol to not symbol
@@ -722,6 +729,13 @@ func _on_item_edited(item=null):
 			
 		else:
 			self.enable_create_symbol(item)
+
+# TODO: more locally near anchor manager
+func _on_item_edited(item=null):
+	if item == null:
+		item = self.current_tree.get_edited()
+
+	self.anchor_update(item)
 		
 func enable_create_symbol(item):
 	var index = item.get_button_by_id(TREE_BUTTONS, BUTTON_CREATE_SYMBOL)
