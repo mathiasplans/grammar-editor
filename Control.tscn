@@ -176,7 +176,15 @@ func get_lhs():
 	return self.current_rule.lhs
 	
 func get_lhs_poly():
-	return self.current_rule.lhs_poly
+	if self.current_rule == null:
+		if self.current_symbol != null:
+			var shape = %Symbols.get_default_shape(self.current_symbol)
+			return shape.get_polyhedron()
+			
+		return null
+		
+	else:
+		return self.current_rule.lhs_poly
 	
 func get_symbol():
 	return self.current_symbol
@@ -878,6 +886,8 @@ func _notification(what):
 		
 func _is_inactive():
 	return _shapes.size() == 0 and _terminals.size() == 0
+	
+var tools_vis = false
 
 func _on_visibility_changed():
 	if self._is_inactive():
@@ -888,6 +898,9 @@ func _on_visibility_changed():
 		
 		self._refresh_shapes()
 		
+		self.tools_vis = %ToolInfo.visible
+		%ToolInfo.visible = false
+		
 	else:
 		for shape in self._shapes:
 			shape.free()
@@ -896,6 +909,8 @@ func _on_visibility_changed():
 		
 		self._refresh_shapes()
 		self._clear_terminals()
+		
+		%ToolInfo.visible = self.tools_vis
 "
 
 [sub_resource type="GDScript" id="GDScript_besah"]
@@ -987,13 +1002,15 @@ func draw_rule():
 	if %RuleManager.current_rule != null:
 		$Meshes.add_child(%RuleManager.current_rule)
 		self.compile_button.disabled = false
+		%ToolInfo.visible = true
 		
 	else:
 		self.compile_button.disabled = true
+		%ToolInfo.visible = false
 		
 func draw_symbol():
 	if %RuleManager.symbol != null:
-		pass
+		%ToolInfo.visible = false
 	
 func go_blank():
 	self.compile_button.disabled = true
@@ -1304,7 +1321,14 @@ dragger_visibility = 2
 
 [node name="ToolInfo" type="GridContainer" parent="HSplitContainer/Left/RuleEditor/ToolsView"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="Label" type="Label" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
+layout_mode = 2
+text = "Tools"
+horizontal_alignment = 1
 
 [node name="FaceCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
@@ -1332,7 +1356,7 @@ script = ExtResource("2")
 [node name="SubViewport" type="SubViewport" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer"]
 handle_input_locally = false
 physics_object_picking = true
-size = Vector2i(746, 376)
+size = Vector2i(840, 376)
 render_target_update_mode = 4
 
 [node name="Cam" type="Camera3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport"]
