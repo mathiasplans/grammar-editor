@@ -52,8 +52,10 @@ func _init(_ai, _bi, _poly, _face_i, alpha=1, _ab_len=0.2):
 	var mat = StandardMaterial3D.new()
 	mat.albedo_color = unselected_col
 	mat.albedo_texture = anchor_tex
-	mat.flags_transparent = true
-	mat.params_cull_mode = StandardMaterial3D.CULL_DISABLED
+	mat.flags_transparent = StandardMaterial3D.Transparency.TRANSPARENCY_ALPHA
+	mat.cull_mode = StandardMaterial3D.CULL_BACK
+	mat.no_depth_test = true
+	mat.render_priority = 100
 	
 	self.mesh = anchor_mesh
 	self.material_override = mat

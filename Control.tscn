@@ -279,7 +279,7 @@ const button_xray_tex = preload(\"res://icons/GuiVisibilityXray.svg\")
 
 enum {NODE_POLY, NODE_SPLIT}
 enum {TREE_TEXT, TREE_SYMBOL, tree_nr_of_cols, TREE_META = TREE_TEXT, TREE_BUTTONS = TREE_SYMBOL}
-enum {BUTTON_EPSILON, BUTTON_HIDE, BUTTON_CREATE_SYMBOL, tree_nr_of_buttons}
+enum {BUTTON_HIDE, BUTTON_EPSILON, BUTTON_CREATE_SYMBOL, tree_nr_of_buttons}
 enum {VIS_HIDDEN, VIS_XRAY, VIS_VISIBLE, VIS_amount}
 
 var hidden_to_tex = {VIS_HIDDEN: button_hidden_tex, VIS_VISIBLE: button_visible_tex, VIS_XRAY: button_xray_tex}
@@ -305,7 +305,8 @@ func _ready():
 	%Symbols.symbol_renamed.connect(_on_symbol_rename)
 
 func _hidden_button_change(treeitem, tm):
-	treeitem.set_button(TREE_BUTTONS, BUTTON_HIDE, hidden_to_tex[tm.hidden])
+	var hide_index = treeitem.get_button_by_id(TREE_BUTTONS, BUTTON_HIDE)
+	treeitem.set_button(TREE_BUTTONS, hide_index, hidden_to_tex[tm.hidden])
 
 class TreeMeta:
 	var poly = null
@@ -478,12 +479,12 @@ func _treeitem_set_visibility(item):
 			
 			if t:
 				mat.albedo_color.a = 0.2
-				mat.flags_transparent = true
+				#mat.flags_transparent = true
 				m.disable_collision()
 			
 			else:
 				mat.albedo_color.a = 1
-				mat.flags_transparent = false
+				#mat.flags_transparent = false
 				m.enable_collision()
 
 func _treeitem_visible(item, vis):
@@ -506,7 +507,8 @@ func _treeitem_epsilonize(item, eps):
 	
 	_treeitem_set_visibility(item)
 	
-	item.set_button(TREE_BUTTONS, BUTTON_EPSILON, epsilon_to_tex[tm.epsilon])
+	var epsilon_index = item.get_button_by_id(TREE_BUTTONS, BUTTON_EPSILON)
+	item.set_button(TREE_BUTTONS, epsilon_index, epsilon_to_tex[tm.epsilon])
 	
 	self.tree_edited.emit()
 
@@ -964,6 +966,7 @@ static func _add_random_color(mesh_instances):
 		
 		var mat = StandardMaterial3D.new()
 		mat.albedo_color = col
+		mat.transparency = true
 			
 		mesh_instance.set_surface_override_material(0, mat)
 
@@ -1435,7 +1438,7 @@ layout_mode = 2
 
 [node name="ExplorerButton" type="Button" parent="HSplitContainer/Left/VSplitContainer/PanelContainer/HBoxContainer"]
 layout_mode = 2
-text = "Explorer"
+text = "Symbols"
 script = SubResource("GDScript_s8l8w")
 
 [node name="TreeParent" type="VSplitContainer" parent="HSplitContainer"]
