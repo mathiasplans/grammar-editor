@@ -132,6 +132,9 @@ func get_rule():
 	return self.current_rule
 	
 func set_to_no_rule():
+	if %Tester.active():
+		return
+		
 	var old_rule = self.current_rule
 	self.current_rule = null
 	self.rule_i = -1
@@ -140,6 +143,9 @@ func set_to_no_rule():
 	self.rule_changed.emit(old_rule, false)
 
 func set_to_rule(symbol, index):
+	if %Tester.active():
+		return
+	
 	var replacement_rule = self.rules[[symbol, index]]
 	var old_symbol = self.current_symbol
 	var old_rule = self.current_rule
@@ -152,6 +158,9 @@ func set_to_rule(symbol, index):
 	self.rule_changed.emit(old_rule, self.current_rule.is_empty())
 	
 func set_to_symbol(symbol):
+	if %Tester.active():
+		return
+	
 	var old_symbol = self.current_symbol
 	var old_rule = self.current_rule
 	self.current_rule = null
@@ -884,15 +893,15 @@ func _notification(what):
 	if what == NOTIFICATION_VISIBILITY_CHANGED:
 		self._on_visibility_changed()
 		
-func _is_inactive():
-	return _shapes.size() == 0 and _terminals.size() == 0
+func active():
+	return self._shapes.size() != 0 or self._terminals.size() != 0
 	
 var tools_vis = false
 var tree_vis = false
 var explorer_vis = false
 
 func _on_visibility_changed():
-	if self._is_inactive():
+	if not self.active():
 		var root_poly = %RuleManager.get_lhs_poly()
 		
 		var new_shape = GrammarShape.new(%RuleManager.get_symbol(), root_poly.vertices)
@@ -1410,6 +1419,7 @@ script = SubResource("GDScript_cq0kr")
 script = SubResource("GDScript_xx60u")
 
 [node name="Tester" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root"]
+unique_name_in_owner = true
 visible = false
 script = SubResource("GDScript_hr8ly")
 
