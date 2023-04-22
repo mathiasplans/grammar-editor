@@ -295,11 +295,11 @@ const scissors_icon = preload(\"res://icons/scissors.png\")
 const button_xray_tex = preload(\"res://icons/GuiVisibilityXray.svg\")
 
 enum {NODE_POLY, NODE_SPLIT}
-enum {TREE_TEXT, TREE_SYMBOL, tree_nr_of_cols, TREE_META = TREE_TEXT, TREE_BUTTONS = TREE_SYMBOL}
+enum {TREE_SYMBOL, tree_nr_of_cols, TREE_META = TREE_SYMBOL, TREE_BUTTONS = TREE_SYMBOL}
 enum {BUTTON_HIDE, BUTTON_EPSILON, BUTTON_CREATE_SYMBOL, tree_nr_of_buttons}
-enum {VIS_HIDDEN, VIS_XRAY, VIS_VISIBLE, VIS_amount}
+enum {VIS_XRAY, VIS_VISIBLE, VIS_amount}
 
-var hidden_to_tex = {VIS_HIDDEN: button_hidden_tex, VIS_VISIBLE: button_visible_tex, VIS_XRAY: button_xray_tex}
+var hidden_to_tex = {VIS_VISIBLE: button_visible_tex, VIS_XRAY: button_hidden_tex}
 var epsilon_to_tex = {true: button_epsilon, false: button_epsilon_not}
 
 var trees = []
@@ -350,13 +350,14 @@ class TreeMeta:
 # * parent_indices
 # * constructions
 # * rotations
-	
-static func _treeitem_setup(item, metadata, text):
-	item.add_button(TREE_BUTTONS, button_epsilon_not, BUTTON_EPSILON)
-	item.add_button(TREE_BUTTONS, button_visible_tex, BUTTON_HIDE)
+
+
+static func _treeitem_setup(item, metadata, _text):
+	item.add_button(TREE_BUTTONS, button_epsilon_not, BUTTON_EPSILON, false, \"Convert this shape into an empty shape\")
+	item.add_button(TREE_BUTTONS, button_visible_tex, BUTTON_HIDE, false, \"Change the visibility of this shape\")
 	
 	item.set_metadata(TREE_META, metadata)
-	item.set_text(TREE_TEXT, text)
+	#item.set_text(TREE_TEXT, text)
 	
 	item.set_icon(0, shape_icon)
 	
@@ -447,7 +448,7 @@ func remove_leafness(poly, rule):
 	tm.leaf = false
 	
 	# Change the icon
-	item.set_icon(TREE_TEXT, scissors_icon)
+	item.set_icon(TREE_SYMBOL, scissors_icon)
 	
 	# Remove the epsilon button
 	var index = item.get_button_by_id(TREE_BUTTONS, BUTTON_EPSILON)
@@ -480,10 +481,10 @@ func _treeitem_set_visibility(item):
 		var state = tm.hidden
 		for m in %RuleManager.get_meshes(tm.poly):
 			var t = false
-			if (state == VIS_HIDDEN) or tm.epsilon:
-				m.visible = false
+			#if (state == VIS_HIDDEN) or tm.epsilon:
+			#	m.visible = false
 				
-			elif state == VIS_XRAY:
+			if state == VIS_XRAY:
 				# Make transparent
 				t = true
 				
@@ -581,11 +582,11 @@ func _on_tree_selected():
 	
 func _on_polyhedron_selected(poly, rule):
 	var item = rule.get_treeitem(poly)
-	item.select(TREE_TEXT)
+	item.select(TREE_SYMBOL)
 	
 func _on_polyhedron_deselect(poly, rule):
 	var item = rule.get_treeitem(poly)
-	item.deselect(TREE_TEXT)
+	item.deselect(TREE_SYMBOL)
 
 # The goal is to unravel the tree, converting all the position
 # and consturction indices into a global index space.
@@ -760,7 +761,7 @@ func enable_create_symbol(item):
 	var index = item.get_button_by_id(TREE_BUTTONS, BUTTON_CREATE_SYMBOL)
 	
 	if index == -1:
-		item.add_button(TREE_BUTTONS, self.shape_icon, BUTTON_CREATE_SYMBOL)
+		item.add_button(TREE_BUTTONS, self.shape_icon, BUTTON_CREATE_SYMBOL, false, \"Create a new symbol with equal topology\")
 
 func disable_create_symbol(item):
 	var index = item.get_button_by_id(TREE_BUTTONS, BUTTON_CREATE_SYMBOL)
@@ -1316,6 +1317,7 @@ layout_mode = 2
 
 [node name="CompileButton" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt"]
 layout_mode = 2
+tooltip_text = "Compile all the symbols and rules"
 text = "Compile"
 icon = ExtResource("3")
 icon_alignment = 2
@@ -1323,6 +1325,7 @@ script = SubResource("GDScript_4jyo7")
 
 [node name="TestGrammar" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt"]
 layout_mode = 2
+tooltip_text = "Test the grammar rules on the currently selected symbol"
 toggle_mode = true
 text = "Test"
 
@@ -1380,21 +1383,25 @@ horizontal_alignment = 1
 
 [node name="FaceCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
+tooltip_text = "Create a cutting plane by selecting a face and then pressing \"C\". Move the plane to a suitable place and click RMB to create a cut."
 toggle_mode = true
 text = "Face Cut"
 
 [node name="TriPointCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
+tooltip_text = "Specify three points by clicking RMB. The points define a cutting plane, which is used to cut the shape."
 toggle_mode = true
 text = "3-Point Cut"
 
 [node name="PrismCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
+tooltip_text = "Create a cutting plane by selecting a base of a prism and pressing \"C\". Move the plane to a suitable place and click RMB to create a cut."
 toggle_mode = true
 text = "Prism Cut"
 
 [node name="MultiCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
+tooltip_text = "Specify the number of cuts, select a base of a prism, and press \"C\" to partition the prism into multiple equal parts."
 toggle_mode = true
 text = "Multi Cut"
 
