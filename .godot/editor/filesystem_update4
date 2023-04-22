@@ -5,3 +5,5 @@ res://SymbolRules.tscn
 res://Anchor.gd
 res://Cursors.gd
 res://CutPlane.gd
+res://Face.gd
+res://Polyhedron.gd

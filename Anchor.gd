@@ -16,7 +16,7 @@ var face_i
 var poly
 var selected
 
-func _init(_ai, _bi, _poly, _face_i, alpha=1, _ab_len=0.2):
+func _init(_ai, _bi, _poly, _face_i, alpha=1.0, _ab_len=0.2):
 	self.face_i = _face_i
 	self.poly = _poly
 	self.ab_len = _ab_len

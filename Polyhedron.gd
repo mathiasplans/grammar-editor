@@ -572,15 +572,15 @@ func cut(plane_point, plane_normal):
 	return [cut1, cut2]
 	
 # [poly, new_translation, construction]
-func multi_cut(cut_points, normals):
+func multi_cut(__cut_points, normals):
 	var mock_translation = []
 	for i in self.vertices.size():
 		mock_translation.push_back(i)
 	
 	var cuts = [[self, mock_translation, {}]]
 	
-	for i in cut_points.size():
-		var cut_point = cut_points[i]
+	for i in __cut_points.size():
+		var cut_point = __cut_points[i]
 		var normal = normals[i]
 		
 		var new_cuts = []
@@ -798,7 +798,6 @@ func face_centroid(face_i):
 
 func get_closest_edge(mouse_position, transform, cam, only_visible=false, grid_len=0):
 	var ray_start = cam.project_ray_origin(mouse_position)
-	var ray_end = ray_start + cam.project_ray_normal(mouse_position) * 10000
 	
 	var closest_dist = 10000000000
 	var closest_start
@@ -855,7 +854,6 @@ func get_closest_edge(mouse_position, transform, cam, only_visible=false, grid_l
 
 func get_closest_vertex(mouse_position, transform, cam, only_visible=false):
 	var ray_start = cam.project_ray_origin(mouse_position)
-	var ray_end = ray_start + cam.project_ray_normal(mouse_position) * 10000
 	
 	var closest_dist = 10000000000
 	var closest_vi

@@ -165,30 +165,31 @@ func closest_to_mouse():
 		var closest_p
 		var closest_poly
 		
-		for poly in polys:
+		for _poly in polys:
 			# Get the closest edge and point
 			var closeness
 			if Input.is_key_pressed(KEY_SHIFT):
-				closeness = poly.get_closest_vertex(mouse_position, self.global_transform, cam, true)
+				closeness = _poly.get_closest_vertex(mouse_position, self.global_transform, cam, true)
 				
 			else:
 				var snap_to_grid = 0
 				if Input.is_key_pressed(KEY_CTRL):
 					snap_to_grid = 0.1
-				closeness = poly.get_closest_edge(mouse_position, self.global_transform, cam, true, snap_to_grid)
+					
+				closeness = _poly.get_closest_edge(mouse_position, self.global_transform, cam, true, snap_to_grid)
 				
 			var dist = closeness[0]
 			if dist < closest_dist:
 				closest_dist = dist
 				closest_p = closeness[1]
-				closest_poly = poly
+				closest_poly = _poly
 		
 		if closest_p != null:
 			self.cursors[self.cursor_i].position = closest_p
 			self.cursor_polys[self.cursor_i] = closest_poly
 			
-func add_cuts(cuts, poly):
-	self.create_cut.emit(cuts, poly)
+func add_cuts(cuts, _poly):
+	self.create_cut.emit(cuts, _poly)
 
 func on_tripointcut_complete():
 	var cut_plane = CutPlane.from_hull(null, self.get_hull(), Mode.TRI_POINT_CUT)

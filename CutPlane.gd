@@ -35,15 +35,15 @@ static func _set_mat(mesh_inst, double_alpha=false):
 	mesh_inst.material_override.albedo_color = Color(1.0, 0.5, 0.0, alpha)
 	mesh_inst.material_override.flags_transparent = true
 
-static func _hull_to_cutplane(new_plane, hull):
+static func _hull_to_cutplane(new_plane, _hull):
 	var hull_vec = []
-	for hp in hull:
+	for hp in _hull:
 		hull_vec.push_back(hp - new_plane.center)
 		
 	# Get a modified hull that is a bit bigger
 	var plane_scale = 1.4
 	var new_hull = []
-	for i in hull.size():
+	for i in _hull.size():
 		new_hull.push_back(plane_scale * hull_vec[i])
 		
 	new_plane.mesh = Geom.convexhull_to_mesh(new_hull)
@@ -51,22 +51,22 @@ static func _hull_to_cutplane(new_plane, hull):
 	
 	new_plane.fixed_translation = new_plane.position
 	
-	new_plane.hull = hull
+	new_plane.hull = _hull
 	
 	## Add a new material
 	CutPlane._set_mat(new_plane)
 	
 	return new_plane
 
-static func from_hull(_poly, hull, _cut_mode):
+static func from_hull(_poly, _hull, _cut_mode):
 	var new_plane = CutPlane.new(_cut_mode)
 	
-	new_plane.normal = Geom.calculate_normal(hull)
+	new_plane.normal = Geom.calculate_normal(_hull)
 	new_plane.poly = _poly
-	new_plane.center = Geom.convex_hull_center(hull)
+	new_plane.center = Geom.convex_hull_center(_hull)
 	new_plane.dir = new_plane.normal
 	
-	return _hull_to_cutplane(new_plane, hull)
+	return _hull_to_cutplane(new_plane, _hull)
 
 static func from_face(_poly, face_i, _cut_mode):
 	var new_plane = CutPlane.new(_cut_mode)
@@ -91,8 +91,8 @@ static func from_face(_poly, face_i, _cut_mode):
 		new_plane.dir = new_plane.normal
 	
 	# Get vectors to the hull points
-	var hull = _poly.get_hull(face_i)
-	return _hull_to_cutplane(new_plane, hull)
+	var _hull = _poly.get_hull(face_i)
+	return _hull_to_cutplane(new_plane, _hull)
 	
 func closest_to_mouse():
 	var parent_transform = self.get_parent_node_3d().global_transform
@@ -100,8 +100,6 @@ func closest_to_mouse():
 	var viewport = self.get_viewport()
 	var cam = viewport.get_camera_3d()
 	var mouse_position = viewport.get_mouse_position()
-	var ray_origin = cam.project_ray_origin(mouse_position)
-	var ray_end = ray_origin + cam.project_ray_normal(mouse_position) * 10000
 	
 	var cut_plane_a = parent_transform * (self.center + self.dir * 10000)
 	var cut_plane_b = parent_transform * (self.center - self.dir * 10000)

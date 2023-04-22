@@ -192,7 +192,7 @@ func _input(event):
 						self.selector.disable()
 						self.deemphasize()
 				
-func _on_cut_complete(_cut_plane, poly):
+func _on_cut_complete(_cut_plane, _poly):
 	self.cut_plane_exists = false
 	self.selector.enable()
 

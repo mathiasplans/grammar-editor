@@ -47,7 +47,7 @@ script/source = "extends SpinBox
 func _ready():
 	self.line.text_submitted.connect(_on_text_submitted)
 	
-func _on_text_submitted(new_text):
+func _on_text_submitted(_new_text):
 	self.line.release_focus()
 "
 
@@ -1150,7 +1150,7 @@ script/source = "extends Button
 
 const symbol_rules = preload(\"res://SymbolRules.tscn\")
 
-func create_symbol(poly, name=null):
+func create_symbol(poly, _name=null):
 	poly = poly.create_copy()
 	poly.center_scale(0.8)
 	
@@ -1160,8 +1160,8 @@ func create_symbol(poly, name=null):
 	var sym = %Symbols.from_polyhedron(poly, false)
 	poly.symbol = sym
 	
-	if name is String:
-		%Symbols.rename(sym, name)
+	if _name is String:
+		%Symbols.rename(sym, _name)
 
 	var new_symbol_rules = symbol_rules.instantiate()
 	new_symbol_rules.symbol = sym
@@ -1399,7 +1399,6 @@ transform = Transform3D(0.656559, 0, 0.754274, 0, 1, 0, -0.754274, 0, 0.656559, 
 light_energy = 0.3
 
 [node name="ExplorerWindow" type="VSplitContainer" parent="HSplitContainer/Left"]
-unique_name_in_owner = true
 layout_mode = 2
 dragger_visibility = 2
 
