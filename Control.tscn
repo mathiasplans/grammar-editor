@@ -271,7 +271,6 @@ func remove_anchor(poly, rule=self.current_rule):
 	
 	if anchor != null:
 		rule.remove_anchor(poly)
-		rule.remove_child(anchor)
 		self._edited(rule)
 	
 func get_anchor(poly, rule=self.current_rule):
@@ -352,9 +351,11 @@ class TreeMeta:
 # * constructions
 # * rotations
 
+static func _add_epsilon_button(item):
+	item.add_button(TREE_BUTTONS, button_epsilon_not, BUTTON_EPSILON, false, \"Convert this shape into an empty shape\")
 
 static func _treeitem_setup(item, metadata, _text):
-	item.add_button(TREE_BUTTONS, button_epsilon_not, BUTTON_EPSILON, false, \"Convert this shape into an empty shape\")
+	_add_epsilon_button(item)
 	item.add_button(TREE_BUTTONS, button_visible_tex, BUTTON_HIDE, false, \"Change the visibility of this shape\")
 	
 	item.set_metadata(TREE_META, metadata)
@@ -736,6 +737,8 @@ func anchor_update(item, rule=null):
 				%RuleManager.add_anchor(tm.poly, anchor_node, rule)
 				self.tree_symbols[rule.split_tree][sym].push_back(item)
 		
+		var epsilon_index = item.get_button_by_id(TREE_BUTTONS, BUTTON_EPSILON)
+		item.set_button_disabled(TREE_BUTTONS, epsilon_index, true)
 		self.disable_create_symbol(item)
 		
 	# Change from a symbol to not symbol
@@ -744,9 +747,14 @@ func anchor_update(item, rule=null):
 			self._remove_anchor(%RuleManager.current_rule, item, old_sym)
 		
 		if new_text == \"\":
+			
+			var epsilon_index = item.get_button_by_id(TREE_BUTTONS, BUTTON_EPSILON)
+			item.set_button_disabled(TREE_BUTTONS, epsilon_index, false)
 			self.disable_create_symbol(item)
 			
 		else:
+			var epsilon_index = item.get_button_by_id(TREE_BUTTONS, BUTTON_EPSILON)
+			item.set_button_disabled(TREE_BUTTONS, epsilon_index, true)
 			self.enable_create_symbol(item)
 
 # TODO: more locally near anchor manager

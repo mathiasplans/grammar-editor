@@ -136,6 +136,9 @@ func add_anchor(poly, anchor):
 	return true
 	
 func remove_anchor(poly):
+	var anchor = self.anchors[poly]
+	var pobj = self.get_pobj(poly)
+	pobj.remove_child(anchor)
 	return self.anchors.erase(poly)
 	
 func get_anchor(poly):
