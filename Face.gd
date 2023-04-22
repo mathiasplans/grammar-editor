@@ -3,9 +3,6 @@ class_name Face
 
 signal create_cut(cut_plane)
 
-var howerMaterial = null
-var selectedMaterial = null
-var howerselectedMaterial = null
 var in_area = false
 var selected = false
 var poly = null
@@ -18,6 +15,11 @@ var face_i
 
 @onready var selector = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor/Selector"
 @onready var cursors = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor/Cursors"
+
+const howerMat = preload("res://mats/hower.tres")
+const selectMat = preload("res://mats/select.tres")
+const howerselectMat = preload("res://mats/howerselect.tres")
+const marginMat = preload("res://mats/margin.tres")
 
 const cut_key = KEY_C
 const cutplane_script = preload("res://CutPlane.gd")
@@ -57,18 +59,6 @@ func _init(_mesh, _poly, _hull_indices, _face_i):
 		
 	self.normal = (self.hull[0] - self.hull[1]).cross(self.hull[2] - self.hull[1]).normalized()
 	
-	var marginMat = StandardMaterial3D.new()
-	marginMat.albedo_color = Color(0.8, 0.8, 1.0, 1.0)
-	marginMat.flags_unshaded = true
-	
-	var outline_mesh = self.create_better_outline(0.012)
-	self.outline = MeshInstance3D.new()
-	self.outline.visible = false
-	self.outline.mesh = outline_mesh
-	self.outline.material_override = marginMat
-	
-	self.add_child(self.outline)
-	
 	# Add to group
 	self.add_to_group(self.poly.to_string())
 
@@ -77,17 +67,14 @@ func _ready():
 	var _con1 = $Area3D.connect("mouse_entered",Callable(self,"_on_area_enter"))
 	var _con2 = $Area3D.connect("mouse_exited",Callable(self,"_on_area_exit"))
 	var _con3 = $Area3D.connect("input_event",Callable(self,"_on_area_input_event"))
-
-	# Create a new materials
-	howerMaterial = StandardMaterial3D.new()
-	howerMaterial.albedo_color = Color(0.8, 0.2, 0.2, 1.0)
-	#howerMaterial.gdshader = self.gdshader
 	
-	selectedMaterial = StandardMaterial3D.new()
-	selectedMaterial.albedo_color = Color(0.2, 0.8, 0.2, 1.0)
+	var outline_mesh = self.create_better_outline(0.012)
+	self.outline = MeshInstance3D.new()
+	self.outline.visible = false
+	self.outline.mesh = outline_mesh
+	self.outline.material_override = self.marginMat
 	
-	howerselectedMaterial = StandardMaterial3D.new()
-	howerselectedMaterial.albedo_color = Color(0.7, 0.7, 0.3, 1.0)
+	self.add_child(self.outline)
 	
 func disable_collision():
 	$Area3D.visible = false
@@ -98,14 +85,14 @@ func enable_collision():
 func get_color():
 	if self.in_area:
 		if self.selected:
-			return self.howerselectedMaterial
+			return self.howerselectMat
 			
 		else:
-			return self.howerMaterial
+			return self.howerMat
 			
 	else:
 		if self.selected:
-			return self.selectedMaterial
+			return self.selectMat
 			
 		else:
 			return null

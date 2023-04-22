@@ -1,11 +1,11 @@
 res://default_env.tres
 res://Control.tscn
+res://Rule.gd
 res://RuleSelector.tscn
 res://SymbolRules.tscn
-res://Anchor.gd
-res://Cursors.gd
-res://CutPlane.gd
 res://Face.gd
-res://Polyhedron.gd
-res://Rule.gd
-res://ToolOpt.gd
+res://mats/simulacrum.tres
+res://mats/margin.tres
+res://mats/hower.tres
+res://mats/select.tres
+res://mats/howerselect.tres

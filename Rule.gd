@@ -17,6 +17,8 @@ var compiled = false
 
 var anchors = {}
 
+const simulacrumMat = preload("res://mats/simulacrum.tres")
+
 # Persistant:
 # * split_tree
 # * split_root
@@ -73,6 +75,16 @@ func set_collision(poly, c):
 		for m in self.meshes[poly]:
 			m.disable_collision()
 
+func _add_simulacrum(mesh_instances):
+	for mi in mesh_instances:
+		var mesh = mi.mesh.duplicate()
+		
+		var newmi = MeshInstance3D.new()
+		newmi.mesh = mesh
+		newmi.material_override = simulacrumMat
+		
+		self.add_child(newmi)
+
 func set_meshes(poly, mesh_instances):
 	self.meshes[poly] = mesh_instances
 	
@@ -86,6 +98,9 @@ func set_meshes(poly, mesh_instances):
 		# Add the anchor visualization
 		var new_anchor = Anchor.new(0, 1, poly, 0, 0.15, 0.76)
 		
+		# Add copies of the meshes to the background
+		self._add_simulacrum(mesh_instances)
+		
 		pobj.add_child(new_anchor)
 	
 func get_meshes(poly):
@@ -95,6 +110,7 @@ func erase_meshes(poly):
 	if poly != null:
 		# Free the old meshes
 		for m in self.meshes[poly]:
+			m.material_override = null
 			m.queue_free()
 			
 		self.meshes.erase(poly)
