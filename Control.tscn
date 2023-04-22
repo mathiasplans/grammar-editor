@@ -888,6 +888,8 @@ func _is_inactive():
 	return _shapes.size() == 0 and _terminals.size() == 0
 	
 var tools_vis = false
+var tree_vis = false
+var explorer_vis = false
 
 func _on_visibility_changed():
 	if self._is_inactive():
@@ -901,6 +903,12 @@ func _on_visibility_changed():
 		self.tools_vis = %ToolInfo.visible
 		%ToolInfo.visible = false
 		
+		self.tree_vis = %TreeParent.visible
+		%TreeParent.visible = false
+		
+		self.explorer_vis = %ExplorerButton.get_state()
+		%ExplorerButton.close()
+		
 	else:
 		for shape in self._shapes:
 			shape.free()
@@ -911,6 +919,8 @@ func _on_visibility_changed():
 		self._clear_terminals()
 		
 		%ToolInfo.visible = self.tools_vis
+		%TreeParent.visible = self.tree_vis
+		%ExplorerButton.set_state(self.explorer_vis)
 "
 
 [sub_resource type="GDScript" id="GDScript_besah"]
@@ -1231,6 +1241,24 @@ script/source = "extends Button
 func _pressed():
 	%Explorer.visible = not %Explorer.visible
 	%Left.collapsed = not %Left.collapsed
+	
+func get_state():
+	return not %Left.collapsed
+	
+func set_state(state):
+	if state:
+		self.open()
+		
+	else:
+		self.close()
+
+func open():
+	%Explorer.visible = true
+	%Left.collapsed = false
+	
+func close():
+	%Explorer.visible = false
+	%Left.collapsed = true
 "
 
 [node name="Control" type="Control"]
@@ -1463,6 +1491,7 @@ custom_minimum_size = Vector2(0, 25)
 layout_mode = 2
 
 [node name="ExplorerButton" type="Button" parent="HSplitContainer/Left/ExplorerWindow/PanelContainer/HBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Symbols"
 script = SubResource("GDScript_s8l8w")
