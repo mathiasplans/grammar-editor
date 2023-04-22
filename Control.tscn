@@ -1,9 +1,7 @@
-[gd_scene load_steps=20 format=3 uid="uid://b05ly8tkkyqbc"]
+[gd_scene load_steps=18 format=3 uid="uid://b05ly8tkkyqbc"]
 
 [ext_resource type="Script" path="res://Root.gd" id="1"]
 [ext_resource type="Script" path="res://ToolOpt.gd" id="1_ac0rl"]
-[ext_resource type="Script" path="res://EventPasser.gd" id="2"]
-[ext_resource type="Texture2D" uid="uid://dgomoto7wxhcc" path="res://icons/unsynced.png" id="3"]
 [ext_resource type="Script" path="res://Selector.gd" id="4"]
 [ext_resource type="Script" path="res://AnchorManager.gd" id="5"]
 [ext_resource type="Script" path="res://GrammarSymbolMaker.gd" id="6_j4m57"]
@@ -14,26 +12,26 @@ resource_name = "CompileButton"
 script/source = "extends Button
 
 const compiled_icon = preload(\"res://icons/compiled.png\")
-const not_compiled_icon = preload(\"res://icons/unsynced.png\")
+const not_compiled_icon = preload(\"res://icons/not_compiled.png\")
 
 func _ready():
 	%RuleManager.rule_edited.connect(_on_rule_edited)
 	%RuleManager.rule_changed.connect(_on_rule_change)
-	self.icon = self.not_compiled_icon
+	%CompiledStatus.texture = not_compiled_icon
 
 func _pressed():
-	self.icon = self.compiled_icon
+	%CompiledStatus.texture = self.compiled_icon
 
 func _on_rule_edited(rule):
 	if rule == %RuleManager.current_rule:
-		self.icon = self.not_compiled_icon
+		%CompiledStatus.texture = not_compiled_icon
 	
 func _on_rule_change(_old_rule, _created):
 	if %RuleManager.is_compiled():
-		self.icon = self.compiled_icon
+		%CompiledStatus.texture = self.compiled_icon
 		
 	else:
-		self.icon  =self.not_compiled_icon
+		%CompiledStatus.texture = not_compiled_icon
 "
 
 [sub_resource type="GDScript" id="GDScript_wcrj7"]
@@ -289,8 +287,6 @@ const button_hidden_tex = preload(\"res://icons/GuiVisibilityHidden.svg\")
 const button_epsilon = preload(\"res://icons/Greek_lc_epsilon.png\")
 const button_epsilon_not = preload(\"res://icons/Greek_lc_epsilon_dis.png\")
 const shape_icon = preload(\"res://icons/aneZtd-cube-cut-out.png\")
-const compiled_icon = preload(\"res://icons/compiled.png\")
-const not_compiled_icon = preload(\"res://icons/unsynced.png\")
 const scissors_icon = preload(\"res://icons/scissors.png\")
 const button_xray_tex = preload(\"res://icons/GuiVisibilityXray.svg\")
 
@@ -938,32 +934,8 @@ resource_name = "Editor"
 script/source = "extends Node3D
 class_name Editor
 
-@onready var compile_button = %RuleOpt/CompileButton
+@onready var compile_button = %RuleOpt/Compile/CompileButton
 @onready var global_cut = %ToolOpt/FaceCutOpt/GlobalCut
-
-const button_visible_tex = preload(\"res://icons/GuiVisibilityVisible.svg\")
-const button_hidden_tex = preload(\"res://icons/GuiVisibilityHidden.svg\")
-const button_epsilon = preload(\"res://icons/Greek_lc_epsilon.png\")
-const button_epsilon_not = preload(\"res://icons/Greek_lc_epsilon_dis.png\")
-const shape_icon = preload(\"res://icons/aneZtd-cube-cut-out.png\")
-const compiled_icon = preload(\"res://icons/compiled.png\")
-const not_compiled_icon = preload(\"res://icons/unsynced.png\")
-const scissors_icon = preload(\"res://icons/scissors.png\")
-const button_xray_tex = preload(\"res://icons/GuiVisibilityXray.svg\")
-
-enum {NODE_POLY, NODE_SPLIT}
-enum {TREE_TEXT, TREE_SYMBOL, tree_nr_of_cols, TREE_META = TREE_TEXT, TREE_BUTTONS = TREE_SYMBOL}
-enum {BUTTON_EPSILON, BUTTON_HIDE, tree_nr_of_buttons}
-enum {VIS_HIDDEN, VIS_XRAY, VIS_VISIBLE, VIS_amount}
-
-var hidden_to_tex = {VIS_HIDDEN: button_hidden_tex, VIS_VISIBLE: button_visible_tex, VIS_XRAY: button_xray_tex}
-var epsilon_to_tex = {true: button_epsilon, false: button_epsilon_not}
-	
-func _update_compile_button():
-	if %RuleManager.get_compiled():
-		self.compile_button.icon = self.compiled_icon
-	else:
-		self.compile_button.icon = self.not_compiled_icon
 
 static func _create_face_instances(poly):
 	var mesh_instances = poly.get_face_objects()
@@ -1315,13 +1287,22 @@ script = ExtResource("1_ac0rl")
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="CompileButton" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt"]
+[node name="Compile" type="GridContainer" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt"]
+layout_mode = 2
+columns = 2
+
+[node name="CompileButton" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt/Compile"]
 layout_mode = 2
 tooltip_text = "Compile all the symbols and rules"
 text = "Compile"
-icon = ExtResource("3")
 icon_alignment = 2
 script = SubResource("GDScript_4jyo7")
+
+[node name="CompiledStatus" type="TextureRect" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt/Compile"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+stretch_mode = 5
 
 [node name="TestGrammar" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt"]
 layout_mode = 2
@@ -1410,7 +1391,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 stretch = true
-script = ExtResource("2")
 
 [node name="SubViewport" type="SubViewport" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer"]
 handle_input_locally = false

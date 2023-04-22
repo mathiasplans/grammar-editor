@@ -1,7 +1,10 @@
+TextureRect
+ColorRect
+GridContainer
+TextureButton
 Label
 SpinBox
 TextEdit
-GridContainer
 Button
 HSplitContainer
 Node3D
@@ -9,7 +12,6 @@ MeshInstance3D
 PanelContainer
 VSplitContainer
 Panel
-TextureButton
 HBoxContainer
 VBoxContainer
 LineEdit
