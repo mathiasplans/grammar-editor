@@ -920,7 +920,7 @@ func _on_visibility_changed():
 		
 		%ToolInfo.visible = self.tools_vis
 		%TreeParent.visible = self.tree_vis
-		%ExplorerButton.set_state(self.explorer_vis)
+		%ExplorerButton.set_state_keep_open(self.explorer_vis)
 "
 
 [sub_resource type="GDScript" id="GDScript_besah"]
@@ -1013,14 +1013,17 @@ func draw_rule():
 		$Meshes.add_child(%RuleManager.current_rule)
 		self.compile_button.disabled = false
 		%ToolInfo.visible = true
+		%TreeParent.visible = true
 		
 	else:
 		self.compile_button.disabled = true
 		%ToolInfo.visible = false
+		%TreeParent.visible = false
 		
 func draw_symbol():
 	if %RuleManager.symbol != null:
 		%ToolInfo.visible = false
+		%TreeParent.visible = false
 	
 func go_blank():
 	self.compile_button.disabled = true
@@ -1251,6 +1254,10 @@ func set_state(state):
 		
 	else:
 		self.close()
+		
+func set_state_keep_open(state):
+	if state:
+		self.open()
 
 func open():
 	%Explorer.visible = true
@@ -1384,7 +1391,7 @@ script = ExtResource("2")
 [node name="SubViewport" type="SubViewport" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer"]
 handle_input_locally = false
 physics_object_picking = true
-size = Vector2i(840, 376)
+size = Vector2i(1152, 376)
 render_target_update_mode = 4
 
 [node name="Cam" type="Camera3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport"]
@@ -1498,5 +1505,6 @@ script = SubResource("GDScript_s8l8w")
 
 [node name="TreeParent" type="VSplitContainer" parent="HSplitContainer"]
 unique_name_in_owner = true
+visible = false
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
