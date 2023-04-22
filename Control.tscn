@@ -1220,6 +1220,9 @@ func create_symbol(poly, _name=null):
 	%SymbolRules.move_child(new_symbol_rules, instance_i - 1)
 	
 	%RuleManager.set_to_symbol(sym)
+	
+func add_symbol():
+	pass
 
 func _pressed():
 	# Create a cube for now
@@ -1320,6 +1323,7 @@ script = SubResource("GDScript_4jyo7")
 
 [node name="TestGrammar" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt"]
 layout_mode = 2
+toggle_mode = true
 text = "Test"
 
 [node name="FaceCutOpt" type="GridContainer" parent="HSplitContainer/Left/RuleEditor/ToolOpt"]
@@ -1376,18 +1380,22 @@ horizontal_alignment = 1
 
 [node name="FaceCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
+toggle_mode = true
 text = "Face Cut"
 
 [node name="TriPointCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
+toggle_mode = true
 text = "3-Point Cut"
 
 [node name="PrismCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
+toggle_mode = true
 text = "Prism Cut"
 
 [node name="MultiCut" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolsView/ToolInfo"]
 layout_mode = 2
+toggle_mode = true
 text = "Multi Cut"
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="HSplitContainer/Left/RuleEditor/ToolsView"]

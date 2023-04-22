@@ -7,3 +7,5 @@ res://Cursors.gd
 res://CutPlane.gd
 res://Face.gd
 res://Polyhedron.gd
+res://Rule.gd
+res://ToolOpt.gd

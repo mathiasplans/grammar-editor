@@ -53,6 +53,7 @@ func _on_rename_request():
 	%ViewButton.text = \"\"
 	
 	%ViewButton/Name.visible = true
+	%ViewButton/Name.grab_focus()
 	%ViewButton/Name.select_all()
 	
 func _on_delete_request():

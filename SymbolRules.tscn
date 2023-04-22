@@ -21,7 +21,6 @@ var rules = {}
 # * symbol
 # * rules
 
-
 @onready var new_rule = $NewRuleContainer/NewRule
 
 # Called when the node enters the scene tree for the first time.
@@ -86,6 +85,9 @@ var rule_index_counter = 0
 # * rule_index_counter
 
 func _pressed():
+	self.create_rule()
+	
+func create_rule():
 	var instance = rulesel_scene.instantiate()
 	instance.index = self.rule_index_counter
 	self.rule_index_counter += 1
