@@ -29,6 +29,20 @@ func _ready():
 	
 	%RuleOpt/TestGrammar.pressed.connect(_on_testgrammar_press)
 	
+var key_to_press = {
+	KEY_Q: _on_facecut_press,
+	KEY_W: _on_tripointcut_press,
+	KEY_E: _on_prismcut_press,
+	KEY_R: _on_multicut_press,
+	KEY_T: _on_testgrammar_press
+}
+	
+func _input(event):
+	if event is InputEventKey:
+		if event.pressed:
+			if event.keycode in self.key_to_press:
+				self.key_to_press[event.keycode].call()
+	
 func _on_facecut_press():
 	self.set_mode(Mode.FACE_CUT)
 	
@@ -67,6 +81,7 @@ func set_mode(_mode):
 		
 		var button = self.mode_to_button[_mode]
 		button.button_pressed = true
+		button.release_focus()
 	
 	var old_mode = self.mode
 	self.mode = _mode

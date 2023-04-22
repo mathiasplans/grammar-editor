@@ -216,19 +216,25 @@ func compile(rule=self.current_rule):
 	
 ### Wrapper functions for the Rule object ###
 
+func get_pobj(poly, rule=self.current_rule):
+	return rule.get_pobj(poly)
+	
+func set_visibility(poly, vis, rule=self.current_rule):
+	rule.set_visibility(poly, vis)
+		
+func set_transparency(poly, t, rule=self.current_rule):
+	rule.set_transparency(poly, t)
+			
+func set_collision(poly, c, rule=self.current_rule):
+	rule.set_collision(poly, c)
+
 func set_meshes(poly, mesh_instances, rule=self.current_rule):
 	rule.set_meshes(poly, mesh_instances)
-	
-	for mesh in mesh_instances:
-		rule.add_child(mesh)
 	
 func get_meshes(poly, rule=self.current_rule):
 	return rule.get_meshes(poly)
 	
 func erase_meshes(poly, rule=self.current_rule):
-	for mesh in self.get_meshes(poly):
-		rule.remove_child(mesh)
-	
 	rule.erase_meshes(poly)
 		
 func get_all_meshes(rule=self.current_rule):
@@ -258,7 +264,6 @@ func get_leaf_polys(rule=self.current_rule):
 func add_anchor(poly, anchor, rule=self.current_rule):
 	if self.get_anchor(poly, rule) == null:
 		rule.add_anchor(poly, anchor)
-		rule.add_child(anchor)
 		self._edited(rule)
 	
 func remove_anchor(poly, rule=self.current_rule):
@@ -475,31 +480,25 @@ func _treeitem_set_visibility(item):
 	var tm = item.get_metadata(TREE_META)
 	if tm.leaf:
 		var state = tm.hidden
-		for m in %RuleManager.get_meshes(tm.poly):
-			var t = false
-			#if (state == VIS_HIDDEN) or tm.epsilon:
-			#	m.visible = false
-				
-			if state == VIS_XRAY:
-				# Make transparent
-				t = true
-				
-				m.visible = true
-				
-			elif state == VIS_VISIBLE:
-				m.visible = true
+		
+		var t = false
+		if tm.epsilon:
+			%RuleManager.set_visibility(tm.poly, false)
 			
-			var mat = m.get_active_material(0)	
+		elif state == VIS_XRAY:
+			t = true
+			%RuleManager.set_visibility(tm.poly, true)
 			
-			if t:
-				mat.albedo_color.a = 0.2
-				mat.set_transparency(true)
-				m.disable_collision()
+		elif state == VIS_VISIBLE:
+			%RuleManager.set_visibility(tm.poly, true)
 			
-			else:
-				mat.albedo_color.a = 1
-				mat.set_transparency(false)
-				m.enable_collision()
+		if t:
+			%RuleManager.set_transparency(tm.poly, 0.2)
+			%RuleManager.set_collision(tm.poly, false)
+			
+		else:
+			%RuleManager.set_transparency(tm.poly, 1.0)
+			%RuleManager.set_collision(tm.poly, true)
 
 func _treeitem_visible(item, vis):
 	var tm = item.get_metadata(TREE_META)
@@ -530,6 +529,8 @@ func _on_tree_button(item, column, id, _mouse_button_index):
 	var tm = item.get_metadata(TREE_META)
 	if column == TREE_BUTTONS:
 		if id == BUTTON_HIDE:
+			%Editor/Selector.select_clear()
+			
 			if Input.is_physical_key_pressed(KEY_SHIFT):
 				if tm.other_hidden == VIS_XRAY:
 					tm.other_hidden = VIS_VISIBLE
@@ -552,9 +553,11 @@ func _on_tree_button(item, column, id, _mouse_button_index):
 				self._treeitem_visible(item, (tm.hidden + 1) % VIS_amount)
 			
 		elif id == BUTTON_EPSILON:
+			%Editor/Selector.select_clear()
 			self._treeitem_epsilonize(item, not tm.epsilon)
 			
 		elif id == BUTTON_CREATE_SYMBOL:
+			%Editor/Selector.select_clear()
 			var rule = %RuleManager.get_rule()
 			self._on_item_edited(item)
 			%AddSymbol.create_symbol(tm.poly, item.get_text(TREE_SYMBOL))
@@ -801,6 +804,13 @@ var _terminal_meshes = []
 
 func _ready():
 	self.apply_rule.button_down.connect(self._on_apply_rule_press)
+	
+func _input(event):
+	if self.active():
+		if event is InputEventKey:
+			if event.pressed:
+				if event.keycode == KEY_ENTER:
+					self._on_apply_rule_press()
 
 static func _add_random_color(mesh_instances):
 	var rng = RandomNumberGenerator.new()
@@ -966,7 +976,7 @@ static func _create_face_instances(poly):
 static func _add_random_color(mesh_instances):
 	var rng = RandomNumberGenerator.new()
 	rng.randomize()
-	var col = Color(rng.randf_range(0.5, 1.0), rng.randf_range(0.5, 1.0), rng.randf_range(0.7, 1.0), 1.0)
+	var col = Color(rng.randf_range(0.5, 1.0), rng.randf_range(0.5, 1.0), rng.randf_range(0.5, 1.0), 1.0)
 	for mesh_instance in mesh_instances:
 		var mat = StandardMaterial3D.new()
 		mat.albedo_color = col

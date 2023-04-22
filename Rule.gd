@@ -7,6 +7,8 @@ var split_root = null
 var poly_to_treeitem = {}
 var leaf_polys = {}
 
+var poly_obj = {}
+
 var lhs = null
 var lhs_poly = null
 
@@ -30,9 +32,53 @@ func _init(_index):
 	
 func is_empty():
 	return self.meshes.size() == 0
+	
+func get_pobj(poly):
+	var obj
+	if poly in self.poly_obj:
+		obj = self.poly_obj[poly]
+		
+	else:
+		obj = Node3D.new()
+		self.add_child(obj)
+		self.poly_obj[poly] = obj
+		
+	return obj
+	
+func set_visibility(poly, vis):
+	var pobj = self.get_pobj(poly)
+	pobj.visible = vis
+		
+func set_transparency(poly, t):
+	if t > 0.99:
+		for m in self.meshes[poly]:
+			var mat = m.get_active_material(0)
+			
+			mat.albedo_color.a = 1
+			mat.transparency = false
+			
+	else:
+		for m in self.meshes[poly]:
+			var mat = m.get_active_material(0)
+			
+			mat.albedo_color.a = t
+			mat.transparency = true
+			
+func set_collision(poly, c):
+	if c:
+		for m in self.meshes[poly]:
+			m.enable_collision()
+			
+	else:
+		for m in self.meshes[poly]:
+			m.disable_collision()
 
 func set_meshes(poly, mesh_instances):
 	self.meshes[poly] = mesh_instances
+	
+	var pobj = self.get_pobj(poly)
+	for meshi in mesh_instances:
+		pobj.add_child(meshi)
 	
 	if self.leaf_polys.keys().size() == 0:
 		self.set_leafness(poly)
@@ -40,7 +86,7 @@ func set_meshes(poly, mesh_instances):
 		# Add the anchor visualization
 		var new_anchor = Anchor.new(0, 1, poly, 0, 0.15, 0.76)
 		
-		self.add_child(new_anchor)
+		pobj.add_child(new_anchor)
 	
 func get_meshes(poly):
 	return self.meshes[poly]
@@ -83,6 +129,10 @@ func add_anchor(poly, anchor):
 		return false
 		
 	self.anchors[poly] = anchor
+	
+	var pobj = self.get_pobj(poly)
+	pobj.add_child(anchor)
+	
 	return true
 	
 func remove_anchor(poly):
