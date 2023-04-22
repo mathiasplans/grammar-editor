@@ -1213,6 +1213,7 @@ script/source = "extends Button
 
 func _pressed():
 	%Explorer.visible = not %Explorer.visible
+	%Left.collapsed = not %Left.collapsed
 "
 
 [node name="Control" type="Control"]
@@ -1231,6 +1232,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 
 [node name="Left" type="VSplitContainer" parent="HSplitContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(750, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -1396,31 +1398,31 @@ script = ExtResource("6_j4m57")
 transform = Transform3D(0.656559, 0, 0.754274, 0, 1, 0, -0.754274, 0, 0.656559, 1.85974, 0, 0.65363)
 light_energy = 0.3
 
-[node name="VSplitContainer" type="VSplitContainer" parent="HSplitContainer/Left"]
+[node name="ExplorerWindow" type="VSplitContainer" parent="HSplitContainer/Left"]
+unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 8
 dragger_visibility = 2
 
-[node name="Explorer" type="TabContainer" parent="HSplitContainer/Left/VSplitContainer"]
+[node name="Explorer" type="TabContainer" parent="HSplitContainer/Left/ExplorerWindow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="Symbols" type="ScrollContainer" parent="HSplitContainer/Left/VSplitContainer/Explorer"]
+[node name="Symbols" type="ScrollContainer" parent="HSplitContainer/Left/ExplorerWindow/Explorer"]
 custom_minimum_size = Vector2(750, 120)
 layout_mode = 2
 
-[node name="SymbolRules" type="GridContainer" parent="HSplitContainer/Left/VSplitContainer/Explorer/Symbols"]
+[node name="SymbolRules" type="GridContainer" parent="HSplitContainer/Left/ExplorerWindow/Explorer/Symbols"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="PanelContainer" type="PanelContainer" parent="HSplitContainer/Left/VSplitContainer/Explorer/Symbols/SymbolRules"]
+[node name="PanelContainer" type="PanelContainer" parent="HSplitContainer/Left/ExplorerWindow/Explorer/Symbols/SymbolRules"]
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
 
-[node name="AddSymbol" type="Button" parent="HSplitContainer/Left/VSplitContainer/Explorer/Symbols/SymbolRules/PanelContainer"]
+[node name="AddSymbol" type="Button" parent="HSplitContainer/Left/ExplorerWindow/Explorer/Symbols/SymbolRules/PanelContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(70, 70)
 layout_mode = 2
@@ -1429,14 +1431,15 @@ size_flags_vertical = 0
 text = "New Symbol"
 script = SubResource("GDScript_r1mpe")
 
-[node name="PanelContainer" type="PanelContainer" parent="HSplitContainer/Left/VSplitContainer"]
+[node name="PanelContainer" type="PanelContainer" parent="HSplitContainer/Left/ExplorerWindow"]
 layout_mode = 2
+size_flags_vertical = 8
 
-[node name="HBoxContainer" type="HBoxContainer" parent="HSplitContainer/Left/VSplitContainer/PanelContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="HSplitContainer/Left/ExplorerWindow/PanelContainer"]
 custom_minimum_size = Vector2(0, 25)
 layout_mode = 2
 
-[node name="ExplorerButton" type="Button" parent="HSplitContainer/Left/VSplitContainer/PanelContainer/HBoxContainer"]
+[node name="ExplorerButton" type="Button" parent="HSplitContainer/Left/ExplorerWindow/PanelContainer/HBoxContainer"]
 layout_mode = 2
 text = "Symbols"
 script = SubResource("GDScript_s8l8w")
