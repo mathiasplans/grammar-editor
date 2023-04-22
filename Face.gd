@@ -81,16 +81,13 @@ func _ready():
 	# Create a new materials
 	howerMaterial = StandardMaterial3D.new()
 	howerMaterial.albedo_color = Color(1.0, 0.0, 0.0, 1.0)
-	howerMaterial.transparency = true
 	#howerMaterial.gdshader = self.gdshader
 	
 	selectedMaterial = StandardMaterial3D.new()
 	selectedMaterial.albedo_color = Color(0.0, 1.0, 0.0, 1.0)
-	selectedMaterial.transparency = true
 	
 	howerselectedMaterial = StandardMaterial3D.new()
 	howerselectedMaterial.albedo_color = Color(0.7, 0.7, 0.2, 1.0)
-	howerselectedMaterial.transparency = true
 	
 func disable_collision():
 	$Area3D.visible = false

@@ -493,12 +493,12 @@ func _treeitem_set_visibility(item):
 			
 			if t:
 				mat.albedo_color.a = 0.2
-				#mat.flags_transparent = true
+				mat.set_transparency(true)
 				m.disable_collision()
 			
 			else:
 				mat.albedo_color.a = 1
-				#mat.flags_transparent = false
+				mat.set_transparency(false)
 				m.enable_collision()
 
 func _treeitem_visible(item, vis):
@@ -966,14 +966,11 @@ static func _create_face_instances(poly):
 static func _add_random_color(mesh_instances):
 	var rng = RandomNumberGenerator.new()
 	rng.randomize()
-	
+	var col = Color(rng.randf_range(0.5, 1.0), rng.randf_range(0.5, 1.0), rng.randf_range(0.7, 1.0), 1.0)
 	for mesh_instance in mesh_instances:
-		# Set color
-		var col = Color(rng.randf_range(0.5, 1.0), rng.randf_range(0.5, 1.0), rng.randf_range(0.7, 1.0), 1.0)
-		
 		var mat = StandardMaterial3D.new()
 		mat.albedo_color = col
-		mat.transparency = true
+		mat.transparency = false
 			
 		mesh_instance.set_surface_override_material(0, mat)
 
