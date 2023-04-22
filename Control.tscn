@@ -1409,6 +1409,7 @@ stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer"]
 handle_input_locally = false
+msaa_3d = 3
 physics_object_picking = true
 size = Vector2i(1152, 376)
 render_target_update_mode = 4
