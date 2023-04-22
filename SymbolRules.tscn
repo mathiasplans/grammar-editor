@@ -4,7 +4,7 @@
 
 [sub_resource type="GDScript" id="GDScript_ryr5i"]
 resource_name = "SymbolRules"
-script/source = "extends GridContainer
+script/source = "extends FlowContainer
 
 signal rule_created(symbol, index)
 signal rule_selected(symbol, index)
@@ -112,8 +112,11 @@ func _on_rule_deleted(index):
 	self.rule_deleted.emit(index)
 "
 
-[node name="RuleSelectors" type="GridContainer"]
-columns = 6
+[node name="RuleSelectors" type="HFlowContainer"]
+offset_right = 789.0
+offset_bottom = 70.0
+size_flags_horizontal = 3
+size_flags_vertical = 0
 script = SubResource("GDScript_ryr5i")
 
 [node name="SymbolContainer" parent="." instance=ExtResource("1_vi045")]
