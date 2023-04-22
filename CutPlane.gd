@@ -178,4 +178,5 @@ func _input(event):
 		
 	if event is InputEventMouseButton:
 		if event.pressed:
-			self.complete()
+			if event.button_index == MOUSE_BUTTON_RIGHT:
+				self.complete()

@@ -3,3 +3,5 @@ res://Control.tscn
 res://RuleSelector.tscn
 res://SymbolRules.tscn
 res://Anchor.gd
+res://Cursors.gd
+res://CutPlane.gd

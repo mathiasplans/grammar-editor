@@ -97,7 +97,7 @@ func _input(event):
 	if event is InputEventMouseButton:
 		if self.mode == Mode.TRI_POINT_CUT:
 			if event.pressed:
-				if event.button_index == MOUSE_BUTTON_LEFT:
+				if event.button_index == MOUSE_BUTTON_RIGHT:
 					if self.poly == null:
 						self.poly = self.get_poly()
 					
@@ -107,10 +107,10 @@ func _input(event):
 						self.on_tripointcut_complete()
 						self.end_current_mode()
 					
-				elif event.button_index == MOUSE_BUTTON_RIGHT:
-					self.complete = false
-					if self.prev_cursor():
-						self.poly = null
+				#elif event.button_index == MOUSE_BUTTON_RIGHT:
+				#	self.complete = false
+				#	if self.prev_cursor():
+				#		self.poly = null
 		
 func activate_cursors():
 	self.poly = null
