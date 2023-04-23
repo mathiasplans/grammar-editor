@@ -13,8 +13,8 @@ var outline
 var normal = null
 var face_i
 
-@onready var selector = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor/Selector"
-@onready var cursors = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor/Cursors"
+@onready var selector = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor/Selector"
+@onready var cursors = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor/Cursors"
 
 const howerMat = preload("res://mats/hower.tres")
 const selectMat = preload("res://mats/select.tres")

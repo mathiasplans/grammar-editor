@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://b05ly8tkkyqbc"]
+[gd_scene load_steps=20 format=3 uid="uid://b05ly8tkkyqbc"]
 
 [ext_resource type="Script" path="res://Root.gd" id="1"]
 [ext_resource type="Script" path="res://ToolOpt.gd" id="1_ac0rl"]
@@ -48,6 +48,11 @@ func _ready():
 func _on_text_submitted(_new_text):
 	self.line.release_focus()
 "
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k66y5"]
+bg_color = Color(1, 1, 1, 1)
+
+[sub_resource type="Theme" id="Theme_wq57k"]
 
 [sub_resource type="Environment" id="1"]
 background_mode = 1
@@ -278,6 +283,12 @@ func get_anchor(poly, rule=self.current_rule):
 
 func get_polyhedrons(rule=self.current_rule):
 	return rule.get_polyhedrons()
+
+func get_vertices(transform, rule=self.current_rule):
+	return rule.get_vertices(transform)
+
+func get_corners(transform, rule=self.current_rule):
+	return rule.get_corners(transform)
 "
 
 [sub_resource type="GDScript" id="GDScript_xx60u"]
@@ -810,6 +821,8 @@ var _terminals = []
 var _shape_meshes = []
 var _terminal_meshes = []
 
+var _initial_shape
+
 func _ready():
 	self.apply_rule.button_down.connect(self._on_apply_rule_press)
 	
@@ -824,13 +837,12 @@ static func _add_random_color(mesh_instances):
 	var rng = RandomNumberGenerator.new()
 	rng.randomize()
 	
-	for mesh_instance in mesh_instances:
-		# Set color
-		var col = Color(rng.randf_range(0.5, 1.0), rng.randf_range(0.5, 1.0), rng.randf_range(0.7, 1.0), 1.0)
-		
-		var mat = StandardMaterial3D.new()
-		mat.albedo_color = col
+	# Set color
+	var col = Color(rng.randf_range(0.5, 0.9), rng.randf_range(0.5, 0.9), rng.randf_range(0.7, 0.9), 1.0)
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = col
 			
+	for mesh_instance in mesh_instances:
 		mesh_instance.set_surface_override_material(0, mat)
 
 
@@ -933,6 +945,8 @@ func _on_visibility_changed():
 		self.explorer_vis = %ExplorerButton.get_state()
 		%ExplorerButton.close()
 		
+		self._initial_shape = new_shape
+		
 	else:
 		for shape in self._shapes:
 			shape.free()
@@ -945,6 +959,30 @@ func _on_visibility_changed():
 		%ToolInfo.visible = self.tools_vis
 		%TreeParent.visible = self.tree_vis
 		%ExplorerButton.set_state_keep_open(self.explorer_vis)
+		
+		self._initial_shape = null
+		
+func get_vertices():
+	var verts = []
+	var gt = self.global_transform
+	for shape in _shapes:
+		for vert in shape.vertices:
+			verts.append(gt * vert)
+			
+	for shape in _terminals:
+		for vert in shape.vertices:
+			verts.append(gt * vert)
+			
+	return verts
+
+func get_corners():
+	var verts = []
+	var gt = self.global_transform
+	
+	for vert in self._initial_shape.vertices:
+		verts.append(gt * vert)
+		
+	return verts
 "
 
 [sub_resource type="GDScript" id="GDScript_besah"]
@@ -984,12 +1022,13 @@ static func _create_face_instances(poly):
 static func _add_random_color(mesh_instances):
 	var rng = RandomNumberGenerator.new()
 	rng.randomize()
-	var col = Color(rng.randf_range(0.5, 1.0), rng.randf_range(0.5, 1.0), rng.randf_range(0.5, 1.0), 1.0)
+	var col = Color(rng.randf_range(0.5, 0.9), rng.randf_range(0.5, 0.9), rng.randf_range(0.5, 0.9), 1.0)
+	
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = col
+	mat.transparency = false
+	
 	for mesh_instance in mesh_instances:
-		var mat = StandardMaterial3D.new()
-		mat.albedo_color = col
-		mat.transparency = false
-			
 		mesh_instance.set_surface_override_material(0, mat)
 
 func _mount_poly(poly):
@@ -1043,7 +1082,7 @@ func _ready():
 func _input(event):
 	# Undo and Redo mechanic. TODO: in root
 	if event is InputEventKey:
-		if event.pressed and event.keycode == KEY_Z and event.control:
+		if event.pressed and event.keycode == KEY_Z and event.ctrl_pressed:
 			pass # TODO
 
 # When a cut has been made, add the cutting plane
@@ -1161,6 +1200,16 @@ func _on_symbol_display(symbol, display):
 				
 		else:
 			$Meshes.add_child(symbol_object)
+			
+func get_vertices():
+	var gt = self.global_transform
+	var verts = %RuleManager.get_vertices(gt)
+	return verts
+	
+func get_corners():
+	var gt = self.global_transform
+	var verts = %RuleManager.get_corners(gt)
+	return verts
 "
 
 [sub_resource type="SphereMesh" id="SphereMesh_4nkvx"]
@@ -1401,80 +1450,87 @@ tooltip_text = "Specify the number of cuts, select a base of a prism, and press 
 toggle_mode = true
 text = "Multi Cut"
 
-[node name="SubViewportContainer" type="SubViewportContainer" parent="HSplitContainer/Left/RuleEditor/ToolsView"]
+[node name="BG" type="PanelContainer" parent="HSplitContainer/Left/RuleEditor/ToolsView"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_k66y5")
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme = SubResource("Theme_wq57k")
 stretch = true
 
-[node name="SubViewport" type="SubViewport" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer"]
+[node name="SubViewport" type="SubViewport" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer"]
+transparent_bg = true
 handle_input_locally = false
 msaa_3d = 3
 physics_object_picking = true
 size = Vector2i(1152, 376)
 render_target_update_mode = 4
 
-[node name="Cam" type="Camera3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport"]
+[node name="Cam" type="Camera3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport"]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.54398)
 environment = SubResource("1")
 
-[node name="Root" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport"]
+[node name="Root" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport"]
 script = ExtResource("1")
 
-[node name="RuleManager" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root"]
+[node name="RuleManager" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root"]
 unique_name_in_owner = true
 script = SubResource("GDScript_cq0kr")
 
-[node name="TreeManager" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/RuleManager"]
+[node name="TreeManager" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/RuleManager"]
 script = SubResource("GDScript_xx60u")
 
-[node name="Tester" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root"]
+[node name="Tester" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root"]
 unique_name_in_owner = true
 visible = false
 script = SubResource("GDScript_hr8ly")
 
-[node name="Editor" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root"]
+[node name="Editor" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root"]
 unique_name_in_owner = true
 script = SubResource("GDScript_besah")
 
-[node name="Selector" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor"]
+[node name="Selector" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor"]
 script = ExtResource("4")
 
-[node name="AnchorManager" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor"]
+[node name="AnchorManager" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor"]
 script = ExtResource("5")
 
-[node name="Meshes" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor"]
+[node name="Meshes" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor"]
 
-[node name="Cursors" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor"]
+[node name="Cursors" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor"]
 script = ExtResource("6_miobu")
 
-[node name="Cursor1" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor/Cursors"]
+[node name="Cursor1" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor/Cursors"]
 transform = Transform3D(0.07, 0, 0, 0, 0.07, 0, 0, 0, 0.07, 0, 0, 0)
 visible = false
 mesh = SubResource("SphereMesh_4nkvx")
 skeleton = NodePath("../..")
 surface_material_override/0 = SubResource("StandardMaterial3D_aipi0")
 
-[node name="Cursor2" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor/Cursors"]
+[node name="Cursor2" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor/Cursors"]
 transform = Transform3D(0.07, 0, 0, 0, 0.07, 0, 0, 0, 0.07, 0, 0, 0)
 visible = false
 mesh = SubResource("SphereMesh_4nkvx")
 skeleton = NodePath("../..")
 surface_material_override/0 = SubResource("StandardMaterial3D_aipi0")
 
-[node name="Cursor3" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Editor/Cursors"]
+[node name="Cursor3" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor/Cursors"]
 transform = Transform3D(0.07, 0, 0, 0, 0.07, 0, 0, 0, 0.07, 0, 0, 0)
 visible = false
 mesh = SubResource("SphereMesh_4nkvx")
 skeleton = NodePath("../..")
 surface_material_override/0 = SubResource("StandardMaterial3D_aipi0")
 
-[node name="Symbols" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root"]
+[node name="Symbols" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root"]
 unique_name_in_owner = true
 script = ExtResource("6_j4m57")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport"]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport"]
 transform = Transform3D(0.656559, 0, 0.754274, 0, 1, 0, -0.754274, 0, 0.656559, 1.85974, 0, 0.65363)
 light_energy = 0.3
 

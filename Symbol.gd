@@ -1,7 +1,7 @@
 extends Node3D
 class_name Symbol
 
-@onready var _symbols = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/SubViewportContainer/SubViewport/Root/Symbols"
+@onready var _symbols = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Symbols"
 
 var symbol
 @onready var shape
