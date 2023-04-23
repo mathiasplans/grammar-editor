@@ -113,7 +113,7 @@ func _on_rule_deleted(index):
 "
 
 [node name="RuleSelectors" type="HFlowContainer"]
-offset_right = 789.0
+offset_right = 253.0
 offset_bottom = 70.0
 size_flags_horizontal = 3
 size_flags_vertical = 0
