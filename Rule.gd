@@ -9,8 +9,8 @@ var leaf_polys = {}
 
 var poly_obj = {}
 
-var lhs = null
-var lhs_poly = null
+var from_shape = null
+var from_shape_poly = null
 
 var index = -1
 var compiled = false
@@ -29,8 +29,11 @@ const simulacrumMat = preload("res://mats/simulacrum.tres")
 # * index
 # * anchors (keys)
 
-func _init(_index):
+func _init(shape, _index):
+	self.from_shape = shape
 	self.index = _index
+	
+	self.from_shape_poly = self.from_shape.get_polyhedron()
 	
 func is_empty():
 	return self.meshes.size() == 0
@@ -177,7 +180,7 @@ func get_vertices(_transform):
 	
 func get_corners(_transform):
 	var verts = []
-	for vert in lhs_poly.vertices:
+	for vert in from_shape_poly.vertices:
 		var new_vert = _transform * vert
 		verts.append(new_vert)
 		

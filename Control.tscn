@@ -16,7 +16,6 @@ const not_compiled_icon = preload(\"res://icons/not_compiled.png\")
 
 func _ready():
 	%RuleManager.rule_edited.connect(_on_rule_edited)
-	%RuleManager.rule_changed.connect(_on_rule_change)
 	%CompiledStatus.texture = not_compiled_icon
 
 func _pressed():
@@ -24,13 +23,6 @@ func _pressed():
 
 func _on_rule_edited(rule):
 	if rule == %RuleManager.current_rule:
-		%CompiledStatus.texture = not_compiled_icon
-	
-func _on_rule_change(_old_rule, _created):
-	if %RuleManager.is_compiled():
-		%CompiledStatus.texture = self.compiled_icon
-		
-	else:
 		%CompiledStatus.texture = not_compiled_icon
 "
 
@@ -82,16 +74,11 @@ func _ready():
 	$TreeManager.tree_edited.connect(self._edited)
 
 func create_rule(symbol : GrammarSymbol, index):
-	var new_rule = Rule.new(index)
-	
 	var shape = %Symbols.get_default_shape(symbol)
-	var shape_poly = shape.get_polyhedron()
-		
-	new_rule.lhs = shape
-	new_rule.lhs_poly = shape_poly
+	var new_rule = Rule.new(shape, index)
 
 	# Tree handling
-	$TreeManager.create_tree(new_rule, shape_poly)
+	$TreeManager.create_tree(new_rule, new_rule.from_shape_poly)
 	
 	self.rules[[symbol, index]] = new_rule
 	
@@ -190,10 +177,10 @@ func _edited(rule=self.current_rule):
 		rule.compiled = false
 		self.rule_edited.emit(rule)
 	
-func get_lhs():
+func get_from_shape():
 	return self.current_rule.lhs
 	
-func get_lhs_poly():
+func get_from_shape_poly():
 	if self.current_rule == null:
 		if self.current_symbol != null:
 			var shape = %Symbols.get_default_shape(self.current_symbol)
@@ -202,7 +189,7 @@ func get_lhs_poly():
 		return null
 		
 	else:
-		return self.current_rule.lhs_poly
+		return self.current_rule.from_shape_poly
 	
 func get_symbol():
 	return self.current_symbol
@@ -223,7 +210,12 @@ func add_branch(cut, parent_treeitem, cut_planes, text, sym):
 	
 func compile(rule=self.current_rule):
 	rule.compiled = true
-	return $TreeManager.create_grammar_rule(rule.index)
+	return $TreeManager.create_grammar_rule(rule)
+	
+func compile_all():
+	for symbol_and_index in self.rules:
+		var rule = self.rules[symbol_and_index]
+		self.compile(rule)
 	
 ### Wrapper functions for the Rule object ###
 
@@ -407,7 +399,7 @@ func create_tree(rule, poly):
 	var tm = TreeMeta.new()
 	tm.poly = poly
 	
-	for i in rule.lhs.symbol.nr_of_vertices:
+	for i in rule.from_shape.symbol.nr_of_vertices:
 		tm.parent_indices.push_back(i)
 
 	rule.poly_to_treeitem[poly] = rule.split_root
@@ -716,10 +708,11 @@ func _get_grammar_rule(item, parent_global_indices, rule_object):
 		for child in children:
 			_get_grammar_rule(child, rotated_local_to_global, rule_object)
 	
-func create_grammar_rule(index):
-	var symbol = %RuleManager.get_symbol()
+func create_grammar_rule(rule=%RuleManager.current_rule):
+	var index = rule.index
+	var symbol = rule.from_shape.symbol
+	var root_item = rule.split_root
 	
-	var root_item = self.current_tree.get_root()
 	var new_rule = GrammarRule.new(index, symbol)
 	
 	var indices = []
@@ -916,23 +909,36 @@ func _refresh_shapes():
 
 # Fulfill a grammar
 func _on_apply_rule_press():
+	var old_shape_names = []
+	var new_shape_names = []
 	var new_shapes = []
 	for shape in self._shapes:
+		old_shape_names.append(shape.symbol.text)
+		
 		# Get the rule
 		var grammar_rule = shape.symbol.select_rule()
 		
-		var shapes = grammar_rule.fulfill(shape)
-		
-		new_shapes.append_array(shapes)
+		# No rules, keep the shape
+		if grammar_rule == null:
+			new_shapes.append(shape)
+			
+		else:
+			var shapes = grammar_rule.fulfill(shape)
+			
+			new_shapes.append_array(shapes)
 	
 	# Split the new array between shapes and terminals
 	self._shapes = []
 	for shape in new_shapes:
+		new_shape_names.append(shape.symbol.text)
+		
 		if shape.symbol.is_terminal():
 			self._add_terminal(shape)
 			
 		else:
 			self._shapes.push_back(shape)
+	
+	print(old_shape_names, \" -> \", new_shape_names)
 	
 	self._refresh_shapes()
 
@@ -949,7 +955,7 @@ var explorer_vis = false
 
 func _on_visibility_changed():
 	if not self.active():
-		var root_poly = %RuleManager.get_lhs_poly()
+		var root_poly = %RuleManager.get_from_shape_poly()
 		
 		var new_shape = GrammarShape.new(%RuleManager.get_symbol(), root_poly.vertices)
 		self._shapes.push_back(new_shape)
@@ -1178,7 +1184,7 @@ func _on_cut_complete(cut_planes, _poly):
 		cut_plane.visible = false
 	
 func _on_compile_button_press():
-	var _grammar_rule = %RuleManager.compile()
+	var _grammar_rule = %RuleManager.compile_all()
 
 func _on_poly_reorder(poly, new_order):
 	# Remove old meshes
@@ -1204,7 +1210,7 @@ func _on_rule_change(old_rule, created):
 	
 	# Create new meshes if the rule is new
 	if created:
-		var initial_poly = %RuleManager.get_lhs_poly()
+		var initial_poly = %RuleManager.get_from_shape_poly()
 		self.poly_to_meshes(initial_poly)
 
 	# Add new meshes

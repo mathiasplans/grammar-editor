@@ -82,7 +82,7 @@ func capture_rule():
 	
 	# Change to symbol
 	%RuleManager.set_to_symbol(symbol)
-	await self.get_tree().process_frame # Update the rotation of the symbol
+	await self.get_tree( ).process_frame # Update the rotation of the symbol
 	RenderingServer.force_draw()        # TODO: use ViewPort.force_draw when it is implemented
 	
 	# Capture the symbol

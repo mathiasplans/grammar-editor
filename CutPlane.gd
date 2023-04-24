@@ -18,6 +18,8 @@ var hull
 
 var cut_mode = Mode.NONE
 
+var cutMat = preload("res://mats/cut.tres")
+
 # Gets a point on the plane
 func point():
 	return self.mesh.get_faces()[0] + self.fixed_translation
@@ -25,15 +27,8 @@ func point():
 func _init(_mode):
 	self.cut_mode = _mode
 	
-static func _set_mat(mesh_inst, double_alpha=false):
-	var alpha = 0.3
-	if double_alpha:
-		alpha = alpha / 2
-	
-	mesh_inst.material_override = StandardMaterial3D.new()
-	mesh_inst.material_override.params_cull_mode = StandardMaterial3D.CULL_DISABLED
-	mesh_inst.material_override.albedo_color = Color(1.0, 0.5, 0.0, alpha)
-	mesh_inst.material_override.flags_transparent = true
+func _set_mat():
+	self.material_override = self.cutMat
 
 static func _hull_to_cutplane(new_plane, _hull):
 	var hull_vec = []
@@ -54,7 +49,7 @@ static func _hull_to_cutplane(new_plane, _hull):
 	new_plane.hull = _hull
 	
 	## Add a new material
-	CutPlane._set_mat(new_plane)
+	new_plane._set_mat()
 	
 	return new_plane
 
@@ -148,25 +143,10 @@ func complete(_emit_signal=true):
 		locked = true
 		self.fixed_translation = self.position
 
-		# Create a copy
-		var copy_mesh = MeshInstance3D.new()
-		copy_mesh.mesh = self.mesh
-		CutPlane._set_mat(copy_mesh, true)
-		CutPlane._set_mat(self, true)
-		
-		# Translate the plane a bit to prevent z-fight
-		var z_fight_mag = 0.001
-		copy_mesh.translate(self.normal * z_fight_mag * 2)
-		self.translate(-self.normal * z_fight_mag)
-
-		self.add_child(copy_mesh)
-
 		if _emit_signal:
 			self.cut_complete.emit([self], self.poly)
-
-			# Some receiver set the flag to delete the object
-			if self.delete:
-				self.queue_free()
+		
+		self.queue_free()
 	
 func _input(event):
 	if event is InputEventMouseMotion:
