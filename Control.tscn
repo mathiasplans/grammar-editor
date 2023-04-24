@@ -134,6 +134,12 @@ func remove_rule(symbol, index):
 func get_rule():
 	return self.current_rule
 	
+func get_rule_index():
+	return self.current_rule.index
+	
+func has_active_rule():
+	return self.current_rule != null
+	
 func set_to_no_rule():
 	if %Tester.active():
 		return
@@ -285,10 +291,24 @@ func get_polyhedrons(rule=self.current_rule):
 	return rule.get_polyhedrons()
 
 func get_vertices(transform, rule=self.current_rule):
-	return rule.get_vertices(transform)
+	if rule != null:
+		return rule.get_vertices(transform)
+		
+	elif self.current_symbol != null:
+		return %Symbols.get_default_shape(self.current_symbol).get_vertices(transform)
+		
+	else:
+		return null
 
 func get_corners(transform, rule=self.current_rule):
-	return rule.get_corners(transform)
+	if rule != null:
+		return rule.get_corners(transform)
+		
+	elif self.current_symbol != null:
+		return %Symbols.get_default_shape(self.current_symbol).get_vertices(transform)
+		
+	else:
+		return null
 "
 
 [sub_resource type="GDScript" id="GDScript_xx60u"]

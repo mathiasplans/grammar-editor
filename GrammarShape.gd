@@ -17,3 +17,10 @@ func get_meshes():
 	
 func get_polyhedron():
 	return self.symbol.create_polyhedron(self.vertices)
+
+func get_vertices(transform=Transform3D()):
+	var verts = []
+	for vert in self.vertices:
+		verts.append(transform * vert)
+		
+	return verts

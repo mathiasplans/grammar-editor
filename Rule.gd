@@ -166,19 +166,19 @@ func get_anchor(poly):
 func get_polyhedrons():
 	return self.meshes.keys()
 	
-func get_vertices(transform):
+func get_vertices(_transform):
 	var verts = []
 	for poly in self.get_polyhedrons():
 		for vert in poly.vertices:
-			var new_vert = transform * vert
+			var new_vert = _transform * vert
 			verts.append(new_vert)
 			
 	return verts
 	
-func get_corners(transform):
+func get_corners(_transform):
 	var verts = []
 	for vert in lhs_poly.vertices:
-		var new_vert = transform * vert
+		var new_vert = _transform * vert
 		verts.append(new_vert)
 		
 	return verts
