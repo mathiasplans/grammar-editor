@@ -148,7 +148,6 @@ func _input(event):
 						var cut_plane
 						
 						# Cut mode
-						print(self.cursors.mode)
 						if self.cursors.mode == Mode.FACE_CUT:
 							cut_plane = CutPlane.from_face(self.poly, self.face_i, Mode.FACE_CUT)
 							

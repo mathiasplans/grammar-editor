@@ -120,15 +120,12 @@ func capture_rule():
 	# Create the image for the result
 	var res = Image.create(2*w + aw, h, false, Image.FORMAT_RGBA8)
 	res.fill(Color(0, 0, 0, 0))
-	print(res.get_width(), " ", res.get_height())
 	
 	# Insert the sub-images into the image
 	var src_loc = Vector2i(0, 0)
 	res.blit_rect(symbol_image, Rect2(src_loc, sym_size), sym_loc)
 	res.blit_rect(rai, Rect2(src_loc, arrow_size), arrow_loc)
 	res.blit_rect(rule_image, Rect2(src_loc, rule_size), rule_loc)
-	
-	print(res)
 	
 	return res
 
