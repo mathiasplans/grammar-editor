@@ -630,20 +630,6 @@ func _get_grammar_rule(item, parent_global_indices, rule_object):
 	# If epsilon, do nothing
 	if tm.epsilon:
 		return
-		
-	# Get the rotation
-	var vert_rotation = []
-	for i in tm.poly.vertices.size():
-		vert_rotation.push_back(i)
-		
-	for rot in tm.rotations:
-		var new_rotation = []
-	
-		for new_i in rot.size():
-			var old_i = rot[new_i]
-			new_rotation.push_back(vert_rotation[old_i])
-			
-		vert_rotation = new_rotation
 	
 	# Construct new vertices.
 	# This has to be done before the local_to_global because
@@ -682,11 +668,6 @@ func _get_grammar_rule(item, parent_global_indices, rule_object):
 		# The vertex is inherited from the parent
 		else:
 			local_to_global.push_back(parent_global_indices[i])
-			
-	# Rotate the local vertices
-	var rotated_local_to_global = []
-	rotated_local_to_global.resize(local_to_global.size())
-	Polyhedron._place(rotated_local_to_global, local_to_global, vert_rotation)
 	
 	# Recursion step
 	var children = item.get_children()
@@ -701,12 +682,12 @@ func _get_grammar_rule(item, parent_global_indices, rule_object):
 			sym = %Symbols.from_polyhedron(tm.poly)
 		
 		# Add the production
-		rule_object.add_product(sym, rotated_local_to_global)
+		rule_object.add_product(sym, local_to_global)
 	
 	# Call for each child
 	else:
 		for child in children:
-			_get_grammar_rule(child, rotated_local_to_global, rule_object)
+			_get_grammar_rule(child, local_to_global, rule_object)
 	
 func create_grammar_rule(rule=%RuleManager.current_rule):
 	var index = rule.index
