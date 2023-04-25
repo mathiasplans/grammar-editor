@@ -727,6 +727,9 @@ func create_grammar_rule(rule=%RuleManager.current_rule):
 const _matching_sym_color = Color(0.3, 1, 0.1, 0.05)
 
 func _remove_anchor(rule, treeitem, sym):
+	if sym == null:
+		return
+	
 	var tm = treeitem.get_metadata(TREE_META)
 	
 	treeitem.clear_custom_bg_color(TREE_SYMBOL)
@@ -749,17 +752,18 @@ func anchor_update(item, rule=null):
 		item.set_custom_bg_color(TREE_SYMBOL, _matching_sym_color)
 		var sym = %Symbols.symbols[new_text]
 		if sym != old_sym:
+			# Remove the old anchor
+			self._remove_anchor(%RuleManager.current_rule, item, old_sym)
+			
 			tm.poly.symbol = sym
-
+			
 			var anchor_node = %Editor/AnchorManager.add_poly(tm.poly, sym)
 			
+			# Use the current rule and tree
 			if rule == null:
-				%RuleManager.add_anchor(tm.poly, anchor_node)
-				self.tree_symbols[self.current_tree][sym].push_back(item)
+				rule = %RuleManager.get_rule()
 				
-			else:
-				%RuleManager.add_anchor(tm.poly, anchor_node, rule)
-				self.tree_symbols[rule.split_tree][sym].push_back(item)
+			%RuleManager.add_anchor(tm.poly, anchor_node, rule)
 		
 		var epsilon_index = item.get_button_by_id(TREE_BUTTONS, BUTTON_EPSILON)
 		item.set_button_disabled(TREE_BUTTONS, epsilon_index, true)
@@ -767,8 +771,8 @@ func anchor_update(item, rule=null):
 		
 	# Change from a symbol to not symbol
 	else:
-		if old_sym != null:
-			self._remove_anchor(%RuleManager.current_rule, item, old_sym)
+		# Remove the old anchor
+		self._remove_anchor(%RuleManager.current_rule, item, old_sym)
 		
 		if new_text == \"\":
 			
