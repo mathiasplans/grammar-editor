@@ -36,6 +36,9 @@ func _ready():
 	$SymbolContainer.retexted.connect(_on_symbol_rename)
 	$SymbolContainer.selected.connect(_on_symbol_select)
 	$SymbolContainer.deleted.connect(_on_symbol_delete)
+	
+	$SymbolContainer.always_display_name = true
+	$SymbolContainer.set_viewbutton_visibility()
 
 func _on_rule_create(index, object):
 	self.rules[index] = object
@@ -67,6 +70,9 @@ func _on_symbol_delete(_index):
 func display_meshes(index, meshes):
 	var container = self.rules[index]
 	container.display_meshes(meshes)
+	
+func display_symbol_meshes(meshes):
+	$SymbolContainer.display_meshes(meshes)
 "
 
 [sub_resource type="GDScript" id="GDScript_1rxvp"]
@@ -129,11 +135,12 @@ texture = ExtResource("2_adgno")
 expand_mode = 2
 stretch_mode = 5
 
-[node name="NewRuleContainer" type="PanelContainer" parent="."]
-custom_minimum_size = Vector2(70, 70)
+[node name="NewRuleContainer" type="MarginContainer" parent="."]
+custom_minimum_size = Vector2(70, 40)
 layout_mode = 2
 size_flags_horizontal = 0
-size_flags_vertical = 0
+size_flags_vertical = 4
+theme_override_constants/margin_left = 20
 
 [node name="NewRule" type="Button" parent="NewRuleContainer"]
 layout_mode = 2

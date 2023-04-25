@@ -19,6 +19,8 @@ func _ready():
 		var mesh_instance = MeshInstance3D.new()
 		mesh_instance.mesh = mesh
 		self.add_child(mesh_instance)
+		
+		self.mesh_instances.append(mesh_instance)
 
 func _init(_symbol : GrammarSymbol):
 	self.symbol = _symbol 

@@ -15,6 +15,11 @@ signal deleted(index)
 
 const env = preload(\"res://default_env.tres\")
 
+var renaming = false
+var mousein = false
+
+var always_display_name = false
+
 func _ready():
 	%ViewButton.button_down.connect(_on_selected)
 	%ViewButton/Name.text_submitted.connect(_on_name_change)
@@ -36,7 +41,7 @@ func _ready():
 	
 	$SVC/SV.own_world_3d = true
 	
-			# Add rotation
+	# Add rotation
 	$SVC/SV/Meshes.look_at(Vector3(1, 0, -1))
 	$SVC/SV/Meshes.global_rotate(Vector3(1, 0, 0), PI/4)
 	
@@ -68,6 +73,10 @@ func _on_name_change(new_text):
 	
 	self.retexted.emit(self.index, self.text)
 	
+	self.renaming = false
+	
+	self.set_viewbutton_visibility()
+	
 func _on_rename_request():
 	%ViewButton.text = \"\"
 	
@@ -75,19 +84,33 @@ func _on_rename_request():
 	%ViewButton/Name.grab_focus()
 	%ViewButton/Name.select_all()
 	
+	self.renaming = true
+	
 func _on_delete_request():
 	self.deleted.emit(self.index)
 	self.queue_free()
 	
+func set_toolbar_visibility():
+	%ToolBar.visible = self.mousein
+	
+func set_viewbutton_visibility():
+	%ViewButton.visible = self.mousein or self.renaming or self.always_display_name
+	
 func _mouse_entered():
-	%ToolBar.visible = true
+	self.mousein = true
+	
+	self.set_toolbar_visibility()
+	self.set_viewbutton_visibility()
 	
 func _mouse_exited():
-	%ToolBar.visible = false
+	self.mousein = false
+	
+	self.set_toolbar_visibility()
+	self.set_viewbutton_visibility()
 "
 
 [node name="Selector" type="PanelContainer"]
-custom_minimum_size = Vector2(120, 70)
+custom_minimum_size = Vector2(70, 70)
 mouse_filter = 1
 script = SubResource("GDScript_jngft")
 
@@ -100,13 +123,13 @@ size_flags_vertical = 4
 transparent_bg = true
 handle_input_locally = false
 msaa_3d = 3
-size = Vector2i(120, 70)
+size = Vector2i(70, 70)
 render_target_update_mode = 4
 
 [node name="Meshes" type="Node3D" parent="SVC/SV"]
 
 [node name="Camera3D" type="Camera3D" parent="SVC/SV"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.4)
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="SVC/SV"]
 transform = Transform3D(0.656059, 0, 0.75471, 0, 1, 0, -0.75471, 0, 0.656059, 1.8, 0, 0.7)

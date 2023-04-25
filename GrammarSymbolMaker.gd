@@ -118,6 +118,11 @@ func get_symbol_object(symbol):
 	
 func add_button(symbol, button):
 	self.buttons[symbol] = button
+	var meshes = self.symbol_objects[symbol].mesh_instances
+	self.display_symbol_meshes(symbol, meshes)
 	
 func display_meshes(symbol, rule_index, meshes):
 	self.buttons[symbol].display_meshes(rule_index, meshes)
+	
+func display_symbol_meshes(symbol, meshes):
+	self.buttons[symbol].display_symbol_meshes(meshes)
