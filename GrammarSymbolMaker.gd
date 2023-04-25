@@ -8,6 +8,7 @@ var symbols = {}
 var symbols_id = {}
 var default_shape = {}
 var symbol_objects = {}
+var buttons = {}
 
 var index_counter = 0
 var non_terminal_index_counter = 0
@@ -96,6 +97,7 @@ func delete_symbol(symbol):
 	var shape = self.default_shape[symbol]
 	shape.free()
 	self.default_shape.erase(symbol)
+	self.buttons.erase(symbol)
 	symbol.free()
 	
 func get_symbol(text):
@@ -113,3 +115,9 @@ func get_symbols():
 	
 func get_symbol_object(symbol):
 	return self.symbol_objects[symbol]
+	
+func add_button(symbol, button):
+	self.buttons[symbol] = button
+	
+func display_meshes(symbol, rule_index, meshes):
+	self.buttons[symbol].display_meshes(rule_index, meshes)

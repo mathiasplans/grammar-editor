@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://b05ly8tkkyqbc"]
+[gd_scene load_steps=21 format=3 uid="uid://b05ly8tkkyqbc"]
 
 [ext_resource type="Script" path="res://Root.gd" id="1"]
 [ext_resource type="Script" path="res://ToolOpt.gd" id="1_ac0rl"]
@@ -45,6 +45,8 @@ func _on_text_submitted(_new_text):
 bg_color = Color(1, 1, 1, 1)
 
 [sub_resource type="Theme" id="Theme_wq57k"]
+
+[sub_resource type="World3D" id="World3D_xikwn"]
 
 [sub_resource type="Environment" id="1"]
 background_mode = 1
@@ -127,6 +129,12 @@ func get_rule_index():
 func has_active_rule():
 	return self.current_rule != null
 	
+func _rule_changed(old_rule, just_created):
+	self.rule_changed.emit(old_rule, just_created)
+	
+	if self.current_rule != null:
+		%Symbols.display_meshes(self.current_symbol, self.current_rule.index, self.current_rule.get_all_meshes())
+	
 func set_to_no_rule():
 	if %Tester.active():
 		return
@@ -136,7 +144,7 @@ func set_to_no_rule():
 	self.rule_i = -1
 	$TreeManager.remove_tree()
 	
-	self.rule_changed.emit(old_rule, false)
+	self._rule_changed(old_rule, false)
 
 func set_to_rule(symbol, index):
 	if %Tester.active():
@@ -151,7 +159,7 @@ func set_to_rule(symbol, index):
 	$TreeManager.set_tree(self.current_rule.split_tree)
 	
 	self.symbol_displayed.emit(old_symbol, false)
-	self.rule_changed.emit(old_rule, self.current_rule.is_empty())
+	self._rule_changed(old_rule, self.current_rule.is_empty())
 	
 func set_to_symbol(symbol):
 	if %Tester.active():
@@ -164,7 +172,7 @@ func set_to_symbol(symbol):
 	self.current_symbol = symbol
 	$TreeManager.remove_tree()
 	
-	self.rule_changed.emit(old_rule, false)
+	self._rule_changed(old_rule, false)
 	
 	self.symbol_displayed.emit(old_symbol, false)
 	self.symbol_displayed.emit(symbol, true)
@@ -176,6 +184,8 @@ func _edited(rule=self.current_rule):
 	if rule != null:
 		rule.compiled = false
 		self.rule_edited.emit(rule)
+		
+		display_meshes(rule)
 	
 func get_from_shape():
 	return self.current_rule.lhs
@@ -193,6 +203,9 @@ func get_from_shape_poly():
 	
 func get_symbol():
 	return self.current_symbol
+	
+func display_meshes(rule=self.current_rule):
+	%Symbols.display_meshes(rule.get_symbol(), rule.index, rule.get_visible_meshes($TreeManager))
 	
 ### Wrapper functions for the Tree Manager ###
 
@@ -231,8 +244,9 @@ func set_transparency(poly, t, rule=self.current_rule):
 func set_collision(poly, c, rule=self.current_rule):
 	rule.set_collision(poly, c)
 
-func set_meshes(poly, mesh_instances, rule=self.current_rule):
-	rule.set_meshes(poly, mesh_instances)
+func set_meshes(poly, mesh_instances, color: Color, rule=self.current_rule):
+	rule.set_meshes(poly, mesh_instances, color)
+	self.display_meshes(rule)
 	
 func get_meshes(poly, rule=self.current_rule):
 	return rule.get_meshes(poly)
@@ -806,6 +820,10 @@ func _on_symbol_rename(symbol, new_name):
 		
 		for item in items:
 			item.set_text(TREE_SYMBOL, new_name)
+			
+func is_visible(item):
+	var tm = item.get_metadata(TREE_META)
+	return !tm.epsilon and tm.hidden == VIS_VISIBLE
 "
 
 [sub_resource type="GDScript" id="GDScript_hr8ly"]
@@ -1001,6 +1019,8 @@ resource_name = "Editor"
 script/source = "extends Node3D
 class_name Editor
 
+var rng = RandomNumberGenerator.new()
+
 @onready var compile_button = %RuleOpt/Compile/CompileButton
 @onready var global_cut = %ToolOpt/FaceCutOpt/GlobalCut
 
@@ -1030,21 +1050,8 @@ static func _create_face_instances(poly):
 		
 	return mesh_instances
 
-static func _add_random_color(mesh_instances):
-	var rng = RandomNumberGenerator.new()
-	rng.randomize()
-	var col = Color(rng.randf_range(0.5, 0.9), rng.randf_range(0.5, 0.9), rng.randf_range(0.5, 0.9), 1.0)
-	
-	var mat = StandardMaterial3D.new()
-	mat.albedo_color = col
-	mat.transparency = false
-	
-	for mesh_instance in mesh_instances:
-		mesh_instance.set_surface_override_material(0, mat)
-
 func _mount_poly(poly):
 	var mesh_instances = _create_face_instances(poly)
-	_add_random_color(mesh_instances)
 	
 	for mesh_instance in mesh_instances:
 		mesh_instance.create_cut.connect(self._on_create_cut)
@@ -1053,7 +1060,8 @@ func _mount_poly(poly):
 
 func poly_to_meshes(poly):
 	var mesh_instances = self._mount_poly(poly)
-	%RuleManager.set_meshes(poly, mesh_instances)
+	var col = Color(self.rng.randf_range(0.5, 0.9), self.rng.randf_range(0.5, 0.9), self.rng.randf_range(0.5, 0.9), 1.0)
+	%RuleManager.set_meshes(poly, mesh_instances, col)
 	
 func draw_rule():
 	if %RuleManager.current_rule != null:
@@ -1269,6 +1277,8 @@ func create_symbol(poly, _name=null):
 	
 	%RuleManager.set_to_symbol(sym)
 	
+	%Symbols.add_button(sym, new_symbol_rules)
+	
 func add_symbol():
 	pass
 
@@ -1294,7 +1304,6 @@ func _on_symbol_select(symbol):
 	
 func _on_symbol_delete(symbol):
 	%Symbols.delete_symbol(symbol)
-
 "
 
 [sub_resource type="GDScript" id="GDScript_s8l8w"]
@@ -1474,6 +1483,8 @@ theme = SubResource("Theme_wq57k")
 stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer"]
+own_world_3d = true
+world_3d = SubResource("World3D_xikwn")
 transparent_bg = true
 handle_input_locally = false
 msaa_3d = 3

@@ -6,6 +6,7 @@ var split_tree = null
 var split_root = null
 var poly_to_treeitem = {}
 var leaf_polys = {}
+var colors = {}
 
 var poly_obj = {}
 
@@ -18,6 +19,10 @@ var compiled = false
 var anchors = {}
 
 const simulacrumMat = preload("res://mats/simulacrum.tres")
+const contouredMat = preload("res://mats/contouredface.tres")
+
+const contouredShader = preload("res://shaders/contouredface.gdshader")
+const contouredAlphaShader = preload("res://shaders/contouredface_alpha.gdshader")
 
 # Persistant:
 # * split_tree
@@ -59,15 +64,16 @@ func set_transparency(poly, t):
 		for m in self.meshes[poly]:
 			var mat = m.get_active_material(0)
 			
-			mat.albedo_color.a = 1
-			mat.transparency = false
+			mat.shader = contouredShader
+			mat.set_shader_parameter("albedo_color", self.colors[poly])
 			
 	else:
 		for m in self.meshes[poly]:
 			var mat = m.get_active_material(0)
 			
-			mat.albedo_color.a = t
-			mat.transparency = true
+			mat.shader = contouredAlphaShader
+			mat.set_shader_parameter("transparency", t)
+			mat.set_shader_parameter("albedo_color", self.colors[poly])
 			
 func set_collision(poly, c):
 	if c:
@@ -88,12 +94,18 @@ func _add_simulacrum(mesh_instances):
 		
 		self.add_child(newmi)
 
-func set_meshes(poly, mesh_instances):
+func set_meshes(poly, mesh_instances, color: Color):
 	self.meshes[poly] = mesh_instances
+	
+	var newMat = self.contouredMat.duplicate()
+	newMat.set_shader_parameter("albedo_color", color)
+	
+	self.colors[poly] = color
 	
 	var pobj = self.get_pobj(poly)
 	for meshi in mesh_instances:
 		pobj.add_child(meshi)
+		meshi.set_mat(newMat)
 	
 	if self.leaf_polys.keys().size() == 0:
 		self.set_leafness(poly)
@@ -123,6 +135,16 @@ func get_all_meshes():
 	for key in self.meshes.keys():
 		all_meshes.append_array(self.meshes[key])
 		
+	return all_meshes
+	
+func get_visible_meshes(treemanager):
+	var all_meshes = []
+	for key in self.meshes.keys():
+		var item = self.poly_to_treeitem[key]
+		
+		if treemanager.is_visible(item):
+			all_meshes.append_array(self.meshes[key])
+			
 	return all_meshes
 	
 func get_treeitem(poly):
@@ -185,3 +207,6 @@ func get_corners(_transform):
 		verts.append(new_vert)
 		
 	return verts
+	
+func get_symbol():
+	return self.from_shape.symbol

@@ -66,11 +66,17 @@ func _min_cycle(a):
 func get_meshes():
 	return Geom.brep_to_meshes(self.vertices, self.faces)
 	
+func get_meshes_with_contour():
+	return Geom.brep_to_meshes_cont(self.vertices, self.faces)
+	
 func _get_face_mesh(face_i):
 	return Geom.brep_to_meshes(self.vertices, [self.faces[face_i]])[0]
 	
+func _get_face_mesh_with_contour(face_i):
+	return Geom.brep_to_meshes_cont(self.vertices, [self.faces[face_i]])[0]
+	
 func _create_face_object(face_i):
-	var mesh = self._get_face_mesh(face_i)
+	var mesh = self._get_face_mesh_with_contour(face_i)
 	var hull_indices = self.faces[face_i]
 	
 	# Create the instance for the mesh

@@ -1,0 +1,8 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://brwty5y8ysil8"]
+
+[ext_resource type="Shader" path="res://shaders/contouredface.gdshader" id="1_2rmtp"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_2rmtp")
+shader_parameter/albedo_color = Vector4(1, 1, 1, 0)

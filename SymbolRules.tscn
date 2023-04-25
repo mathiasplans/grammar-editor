@@ -38,8 +38,8 @@ func _ready():
 	$SymbolContainer.deleted.connect(_on_symbol_delete)
 
 func _on_rule_create(index, object):
-	self.rule_created.emit(self.symbol, index)
 	self.rules[index] = object
+	self.rule_created.emit(self.symbol, index)
 	
 func _on_rule_select(index):
 	self.rule_selected.emit(self.symbol, index)
@@ -63,6 +63,10 @@ func _on_symbol_delete(_index):
 	self.symbol_deleted.emit(self.symbol)
 	
 	self.queue_free()
+	
+func display_meshes(index, meshes):
+	var container = self.rules[index]
+	container.display_meshes(meshes)
 "
 
 [sub_resource type="GDScript" id="GDScript_1rxvp"]

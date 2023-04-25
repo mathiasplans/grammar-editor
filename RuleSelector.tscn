@@ -13,6 +13,8 @@ signal deleted(index)
 @export var index : int
 @onready var text = \"\"
 
+const env = preload(\"res://default_env.tres\")
+
 func _ready():
 	%ViewButton.button_down.connect(_on_selected)
 	%ViewButton/Name.text_submitted.connect(_on_name_change)
@@ -31,6 +33,23 @@ func _ready():
 	
 	# Toolbar visibility
 	%ToolBar.visible = false
+	
+	$SVC/SV.own_world_3d = true
+	
+			# Add rotation
+	$SVC/SV/Meshes.look_at(Vector3(1, 0, -1))
+	$SVC/SV/Meshes.global_rotate(Vector3(1, 0, 0), PI/4)
+	
+func display_meshes(meshes):
+	# Remove previous children
+	var old_children = $SVC/SV/Meshes.get_children()
+	for child in old_children:
+		child.queue_free()
+	
+	for mesh in meshes:
+		var dupmesh = mesh.duplicate(true)
+		
+		$SVC/SV/Meshes.add_child(dupmesh)
 	
 func rename(new_name):
 	self._on_name_change(new_name)
@@ -71,6 +90,31 @@ func _mouse_exited():
 custom_minimum_size = Vector2(120, 70)
 mouse_filter = 1
 script = SubResource("GDScript_jngft")
+
+[node name="SVC" type="SubViewportContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="SV" type="SubViewport" parent="SVC"]
+transparent_bg = true
+handle_input_locally = false
+msaa_3d = 3
+size = Vector2i(120, 70)
+render_target_update_mode = 4
+
+[node name="Meshes" type="Node3D" parent="SVC/SV"]
+
+[node name="Camera3D" type="Camera3D" parent="SVC/SV"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.5)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="SVC/SV"]
+transform = Transform3D(0.656059, 0, 0.75471, 0, 1, 0, -0.75471, 0, 0.656059, 1.8, 0, 0.7)
+light_energy = 0.3
+
+[node name="DirectionalLight3D2" type="DirectionalLight3D" parent="SVC/SV"]
+transform = Transform3D(0.656059, 0, -0.75471, 0, 1, 0, 0.75471, 0, 0.656059, -1.8, 0, 0.7)
+light_energy = 0.15
 
 [node name="ViewButton" type="Button" parent="."]
 unique_name_in_owner = true

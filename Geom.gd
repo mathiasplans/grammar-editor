@@ -54,8 +54,36 @@ static func convex_hull_center(points):
 		sum += p
 		
 	return sum / points.size()
+	
+static func _insert_brep(points, face, uv, st: SurfaceTool, color: Color):
+	if color == null:
+		color = Color(1, 1, 1, 1)
+	
+	var normal = calculate_normal_from_points(
+			points[face[0]],
+			points[face[1]],
+			points[face[2]]
+	)
+	
+	# Triangularisation
+	# NOTE: Only works when the face is convex
+	for i in face.size() - 2:
+		var i0 = face[0]
+		var i1 = face[i + 1]
+		var i2 = face[i + 2]
+		
+		st.set_normal(normal)
+		st.set_color(color)
+		st.set_uv(uv[0])	
+		st.add_vertex(points[i0])
+		st.set_uv(uv[i + 1])
+		st.add_vertex(points[i1])
+		st.set_uv(uv[i + 2])
+		st.add_vertex(points[i2])
 
-static func brep_to_meshes(points, faces, uvs=null, st=null):
+	st.set_color(Color(1, 1, 1, 1))
+
+static func brep_to_meshes(points, faces, uvs=null, st=null, color=Color(1, 1, 1, 1)):
 	var meshes = []
 	var st_null = st == null
 	
@@ -64,13 +92,7 @@ static func brep_to_meshes(points, faces, uvs=null, st=null):
 		if st_null:
 			st = SurfaceTool.new()
 			st.begin(Mesh.PRIMITIVE_TRIANGLES)
-		
-		var normal = calculate_normal_from_points(
-			points[face[0]],
-			points[face[1]],
-			points[face[2]]
-		)
-		
+			
 		var uv = []
 		if uvs == null:
 			for i in face.size():
@@ -78,22 +100,9 @@ static func brep_to_meshes(points, faces, uvs=null, st=null):
 			
 		else:
 			uv = uvs[face_i]
-			
-		# Triangularisation
-		# NOTE: Only works when the face is convex
-		for i in face.size() - 2:
-			var i0 = face[0]
-			var i1 = face[i + 1]
-			var i2 = face[i + 2]
-			
-			st.set_normal(normal)
-			st.set_uv(uv[0])	
-			st.add_vertex(points[i0])
-			st.set_uv(uv[i + 1])
-			st.add_vertex(points[i1])
-			st.set_uv(uv[i + 2])
-			st.add_vertex(points[i2])
-			
+		
+		_insert_brep(points, face, uv, st, color)
+		
 		if st_null:
 			var mesh = st.commit()
 			meshes.push_back(mesh)
@@ -103,6 +112,76 @@ static func brep_to_meshes(points, faces, uvs=null, st=null):
 		
 	else:
 		return [null]
+		
+static func brep_to_meshes_cont(points, faces):
+	var meshes = []
+	var new_points = points.duplicate()
+	
+	for face in faces:
+		var normal = calculate_normal_from_points(
+			points[face[0]],
+			points[face[1]],
+			points[face[2]]
+		)
+
+		var tangents = []
+		for i in face.size():
+			var next_i = (i + 1) % face.size()
+			
+			var face_i = face[i]
+			var next_face_i = face[next_i]
+			
+			var tangent = (points[next_face_i] - points[face_i]).normalized()
+
+			tangents.append(tangent)
+		
+		# Find the contour
+		const contour_width = 0.005
+		var contour = []
+		
+		for i in tangents.size():
+			var face_i = face[i]
+			var point = points[face_i]
+			var prev_i = (i + tangents.size() - 1) % tangents.size()
+			
+			var tan1 = -tangents[prev_i]
+			var tan2 = tangents[i]
+			
+			var sin_phi = tan1.cross(tan2).length()
+			
+			var tan1_normal = -tan1.cross(normal)
+			var tan2_normal = tan2.cross(normal)
+
+			var contour_point = point + contour_width * (tan1 + tan2) / sin_phi
+			
+			contour.append(new_points.size())
+			new_points.append(contour_point)
+			
+		# Determine contour faces
+		var contour_faces = []
+		for i in face.size():
+			var next_i = (i + 1) % face.size()
+			
+			var face_i = face[i]
+			var next_face_i = face[next_i]
+			
+			var contour_i = contour[i]
+			var next_contour_i = contour[next_i]
+			
+			var contour_face = [face_i, next_face_i, next_contour_i, contour_i]
+			contour_faces.append(contour_face)
+		
+		# Build the mesh
+		var st = SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		brep_to_meshes(new_points, [contour], null, st)
+		var contour_shade = Color(0.8, 0.8, 0.8, 1)
+		brep_to_meshes(new_points, contour_faces, null, st, contour_shade)
+		
+		var mesh = st.commit()
+		meshes.append(mesh)
+		
+	return meshes
 
 static func convexhull_to_mesh(points, st=null):
 	# Create faces

@@ -12,6 +12,7 @@ var cut_plane_exists = false
 var outline
 var normal = null
 var face_i
+var mat
 
 @onready var selector = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor/Selector"
 @onready var cursors = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor/Cursors"
@@ -22,8 +23,6 @@ const howerselectMat = preload("res://mats/howerselect.tres")
 const marginMat = preload("res://mats/margin.tres")
 
 const cut_key = KEY_C
-const cutplane_script = preload("res://CutPlane.gd")
-const shader = preload("res://face.gdshader")
 
 func create_better_outline(margin):
 	var center = Geom.convex_hull_center(self.hull)
@@ -76,6 +75,10 @@ func _ready():
 	
 	self.add_child(self.outline)
 	
+func set_mat(mat):
+	self.mat = mat
+	self.material_override = self.get_color()
+	
 func disable_collision():
 	$Area3D.visible = false
 	
@@ -95,7 +98,7 @@ func get_color():
 			return self.selectMat
 			
 		else:
-			return null
+			return self.mat
 
 func emphasize():
 	if not self.in_area:
