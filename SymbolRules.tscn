@@ -5,7 +5,7 @@
 
 [sub_resource type="GDScript" id="GDScript_ryr5i"]
 resource_name = "SymbolRules"
-script/source = "extends FlowContainer
+script/source = "extends MarginContainer
 
 signal rule_created(symbol, index)
 signal rule_selected(symbol, index)
@@ -22,7 +22,7 @@ var rules = {}
 # * symbol
 # * rules
 
-@onready var new_rule = $NewRuleContainer/NewRule
+@onready var new_rule = $Flow/NewRuleContainer/NewRule
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -31,14 +31,14 @@ func _ready():
 	self.new_rule.rule_deleted.connect(_on_rule_delete)
 	
 	# Set the default name
-	$SymbolContainer.rename(symbol.text)
+	$Flow/SymbolContainer.rename(symbol.text)
 	
-	$SymbolContainer.retexted.connect(_on_symbol_rename)
-	$SymbolContainer.selected.connect(_on_symbol_select)
-	$SymbolContainer.deleted.connect(_on_symbol_delete)
+	$Flow/SymbolContainer.retexted.connect(_on_symbol_rename)
+	$Flow/SymbolContainer.selected.connect(_on_symbol_select)
+	$Flow/SymbolContainer.deleted.connect(_on_symbol_delete)
 	
-	$SymbolContainer.always_display_name = true
-	$SymbolContainer.set_viewbutton_visibility()
+	$Flow/SymbolContainer.always_display_name = true
+	$Flow/SymbolContainer.set_viewbutton_visibility()
 
 func _on_rule_create(index, object):
 	self.rules[index] = object
@@ -72,7 +72,7 @@ func display_meshes(index, meshes):
 	container.display_meshes(meshes)
 	
 func display_symbol_meshes(meshes):
-	$SymbolContainer.display_meshes(meshes)
+	$Flow/SymbolContainer.display_meshes(meshes)
 "
 
 [sub_resource type="GDScript" id="GDScript_1rxvp"]
@@ -86,7 +86,7 @@ signal rule_deleted(index)
 
 var rule_index_counter = 0
 
-@onready var rule_selectors = $\"../..\"
+@onready var flow = $\"../..\"
 
 # Persistant:
 # * rule_index_counter
@@ -101,10 +101,10 @@ func create_rule():
 	
 	self.rule_created.emit(instance.index, instance)
 	
-	self.rule_selectors.add_child(instance)
+	self.flow.add_child(instance)
 
 	var instance_i = instance.get_index()
-	self.rule_selectors.move_child(instance, instance_i - 1)
+	self.flow.move_child(instance, instance_i - 1)
 	
 	# Connect signals
 	instance.selected.connect(_on_rule_selected)
@@ -119,30 +119,36 @@ func _on_rule_deleted(index):
 	self.rule_deleted.emit(index)
 "
 
-[node name="RuleSelectors" type="HFlowContainer"]
+[node name="RuleSelectors" type="MarginContainer"]
 offset_right = 281.0
 offset_bottom = 70.0
 size_flags_horizontal = 3
 size_flags_vertical = 0
+theme_override_constants/margin_left = 3
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 3
 script = SubResource("GDScript_ryr5i")
 
-[node name="SymbolContainer" parent="." instance=ExtResource("1_vi045")]
+[node name="Flow" type="HFlowContainer" parent="."]
 layout_mode = 2
 
-[node name="TextureRect" type="TextureRect" parent="."]
+[node name="SymbolContainer" parent="Flow" instance=ExtResource("1_vi045")]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="Flow"]
 layout_mode = 2
 texture = ExtResource("2_adgno")
 expand_mode = 2
 stretch_mode = 5
 
-[node name="NewRuleContainer" type="MarginContainer" parent="."]
+[node name="NewRuleContainer" type="MarginContainer" parent="Flow"]
 custom_minimum_size = Vector2(70, 40)
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 4
 theme_override_constants/margin_left = 20
 
-[node name="NewRule" type="Button" parent="NewRuleContainer"]
+[node name="NewRule" type="Button" parent="Flow/NewRuleContainer"]
 layout_mode = 2
 text = "New Rule"
 script = SubResource("GDScript_1rxvp")
