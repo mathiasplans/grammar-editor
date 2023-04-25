@@ -4,4 +4,4 @@
 transparency = 1
 cull_mode = 1
 shading_mode = 0
-albedo_color = Color(0, 0, 0, 0.254902)
+albedo_color = Color(0, 0, 0, 0.137255)

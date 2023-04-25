@@ -1,6 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://ch1p7ghl03qlr"]
 
 [ext_resource type="PackedScene" uid="uid://bwxn2fgngxsns" path="res://RuleSelector.tscn" id="1_vi045"]
+[ext_resource type="Texture2D" uid="uid://b0uv4j3fvmpdl" path="res://textures/right-arrow-white.svg" id="2_adgno"]
 
 [sub_resource type="GDScript" id="GDScript_ryr5i"]
 resource_name = "SymbolRules"
@@ -64,10 +65,6 @@ func _on_symbol_delete(_index):
 	self.queue_free()
 "
 
-[sub_resource type="LabelSettings" id="LabelSettings_m5bnl"]
-font_size = 50
-font_color = Color(0.964706, 0.964706, 0.964706, 1)
-
 [sub_resource type="GDScript" id="GDScript_1rxvp"]
 resource_name = "NewRule"
 script/source = "extends Button
@@ -113,7 +110,7 @@ func _on_rule_deleted(index):
 "
 
 [node name="RuleSelectors" type="HFlowContainer"]
-offset_right = 253.0
+offset_right = 281.0
 offset_bottom = 70.0
 size_flags_horizontal = 3
 size_flags_vertical = 0
@@ -122,13 +119,11 @@ script = SubResource("GDScript_ryr5i")
 [node name="SymbolContainer" parent="." instance=ExtResource("1_vi045")]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="."]
+[node name="TextureRect" type="TextureRect" parent="."]
 layout_mode = 2
-size_flags_vertical = 6
-text = "→"
-label_settings = SubResource("LabelSettings_m5bnl")
-horizontal_alignment = 1
-vertical_alignment = 1
+texture = ExtResource("2_adgno")
+expand_mode = 2
+stretch_mode = 5
 
 [node name="NewRuleContainer" type="PanelContainer" parent="."]
 custom_minimum_size = Vector2(70, 70)
