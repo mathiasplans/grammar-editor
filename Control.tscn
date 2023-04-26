@@ -134,7 +134,7 @@ func _rule_changed(old_rule, just_created):
 	self.rule_changed.emit(old_rule, just_created)
 	
 	if self.current_rule != null:
-		%Symbols.display_meshes(self.current_symbol, self.current_rule.index, self.current_rule.get_all_meshes())
+		self.visaul_changed()
 	
 func set_to_no_rule():
 	if %Tester.active():

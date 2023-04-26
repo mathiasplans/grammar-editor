@@ -8,6 +8,19 @@ var mouse_down = false
 const right_arrow = preload("res://textures/right-arrow.svg")
 var right_arrow_img
 
+# Preloads
+const _simulacrumMat = preload("res://mats/simulacrum.tres")
+const _contouredMat = preload("res://mats/contouredface.tres")
+const _anchorMat = preload("res://mats/anchor.tres")
+const _contouredShader = preload("res://shaders/contouredface.gdshader")
+const _contouredAlphaShader = preload("res://shaders/contouredface_alpha.gdshader")
+const _howerMat = preload("res://mats/hower.tres")
+const _selectMat = preload("res://mats/select.tres")
+const _howerselectMat = preload("res://mats/howerselect.tres")
+const _marginMat = preload("res://mats/margin.tres")
+const _cutMat = preload("res://mats/cut.tres")
+const _env = preload("res://default_env.tres")
+
 func _ready():
 	%ToolOpt.mode_changed.connect(self._on_mode_change)
 	self.right_arrow_img = right_arrow.get_image()
