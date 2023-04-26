@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cmomv1iuv7f8e"
-path.s3tc="res://.godot/imported/anchor.png-c070679fa54c2fd687be6876d187ea8c.s3tc.ctex"
+uid="uid://drdfrhw7aqkaq"
+path.s3tc="res://.godot/imported/anchor_contoured.png-339aeb42e953b39d99d738c6687c6aec.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://icons/anchor.png"
-dest_files=["res://.godot/imported/anchor.png-c070679fa54c2fd687be6876d187ea8c.s3tc.ctex"]
+source_file="res://icons/anchor_contoured.png"
+dest_files=["res://.godot/imported/anchor_contoured.png-339aeb42e953b39d99d738c6687c6aec.s3tc.ctex"]
 
 [params]
 

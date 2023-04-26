@@ -2,6 +2,8 @@ extends Node
 class_name AnchorManager
 signal polyhedron_reordered(poly, new_order)
 
+const anchorMat = preload("res://mats/anchor.tres")
+
 class AnchorNode:
 	var center
 	var left
@@ -26,11 +28,14 @@ class AnchorMeta:
 	
 	var snode
 	
+	var mat
+	
 	func _init(_poly,_sym,a,b):
 		self.poly = _poly
 		self.sym = _sym
 		
 		self.snode = Node3D.new()
+		self.mat = anchorMat.duplicate()
 		
 		# Create all possible anchors
 		for face_i in self.poly.faces.size():
@@ -47,7 +52,7 @@ class AnchorMeta:
 				
 				# Check if this topology can have the symbol
 				if self.sym.can_be_assigned_to(copy_poly):
-					var new_anchor = Anchor.new(vi, next_vi, self.poly, face_i)
+					var new_anchor = Anchor.new(vi, next_vi, self.poly, face_i, self.mat)
 					self.snode.add_child(new_anchor)
 					new_anchor.visible = false
 					face_anchors.push_back(new_anchor)

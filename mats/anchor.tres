@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://cqh4r5fmrem5l"]
+
+[ext_resource type="Shader" path="res://shaders/anchor.gdshader" id="1_wunn3"]
+[ext_resource type="Texture2D" uid="uid://drdfrhw7aqkaq" path="res://icons/anchor_contoured.png" id="2_2ppka"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_wunn3")
+shader_parameter/color = Vector4(0, 0, 0, 1)
+shader_parameter/outline = Vector4(0, 0, 0, 0)
+shader_parameter/anchor_texture = ExtResource("2_2ppka")

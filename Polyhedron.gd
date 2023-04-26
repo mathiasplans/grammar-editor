@@ -676,33 +676,16 @@ func _get_anchor_order(origin, a):
 				order.push_back(vert)
 				vertices_done.add(vert)
 				
+				var left_face = self.directed_to_face[[vert, last_vert]]
+				if not faces_done.has(left_face):
+					wm.push_back([left_face, vert])
+				
 			last_last_vert = last_vert
 			last_vert = vert
 			vert = self.face_next[fi][last_vert]
 			
 		# This face has been processed
 		faces_done.add(fi)
-			
-		# Decide on the next job to do
-		# First we check if the next face alongside the start and this face
-		# has not been done
-		var candidate_fi = self.directed_to_face[[start, last_vert]]
-		if not faces_done.has(candidate_fi):
-			wm.push_back([candidate_fi, start])
-			
-		# If all faces that contain the start have been done, move to a
-		# new vertex
-		else:
-			# Go to the next vertex along the candidate
-			var nv_start = last_vert
-			
-			# Get the next vertex along this face
-			var nv_end = last_last_vert
-			
-			# Get the new face
-			candidate_fi = self.directed_to_face[[nv_start, nv_end]]
-			
-			wm.push_back([candidate_fi, nv_start])
 		
 	return order
 	
