@@ -42,7 +42,7 @@ func _on_text_submitted(_new_text):
 "
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k66y5"]
-bg_color = Color(1, 1, 1, 1)
+bg_color = Color(0.980392, 0.980392, 0.901961, 1)
 
 [sub_resource type="Theme" id="Theme_wq57k"]
 
