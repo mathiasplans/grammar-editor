@@ -1,8 +1,6 @@
 extends MeshInstance3D
 class_name Anchor
 
-
-const anchor_tex = preload("res://icons/anchor.png")
 const anchorMat = preload("res://mats/anchor.tres")
 
 const unselected_col = Color(0, 0, 0, 1)

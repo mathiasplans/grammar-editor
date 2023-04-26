@@ -78,6 +78,7 @@ func _ready():
 func create_rule(symbol : GrammarSymbol, index):
 	var shape = %Symbols.get_default_shape(symbol)
 	var new_rule = Rule.new(shape, index)
+	new_rule.add_reference_anchor(%Symbols.get_reference_anchor(symbol))
 
 	# Tree handling
 	$TreeManager.create_tree(new_rule, new_rule.from_shape_poly)

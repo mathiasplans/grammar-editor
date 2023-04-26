@@ -9,9 +9,23 @@ var symbols_id = {}
 var default_shape = {}
 var symbol_objects = {}
 var buttons = {}
+var reference_anchors = {}
 
 var index_counter = 0
 var non_terminal_index_counter = 0
+
+@onready var referenceAnchorMat
+
+const anchor_tex = preload("res://icons/anchor.png")
+
+func _ready():
+	self.referenceAnchorMat = StandardMaterial3D.new()
+	self.referenceAnchorMat.albedo_color = Color(0, 0, 0, 0.15)
+	self.referenceAnchorMat.albedo_texture = self.anchor_tex
+	self.referenceAnchorMat.flags_transparent = StandardMaterial3D.Transparency.TRANSPARENCY_ALPHA
+	self.referenceAnchorMat.cull_mode = StandardMaterial3D.CULL_BACK
+	self.referenceAnchorMat.no_depth_test = true
+	self.referenceAnchorMat.render_priority = 100
 
 # Persistant:
 # * symbols
@@ -62,11 +76,17 @@ func from_polyhedron(poly, _terminal=true):
 	# Create a default shape object
 	self.default_shape[unique_symbol] = GrammarShape.new(unique_symbol, poly.vertices)
 	
-	# Symbol object (to be rendered)
-	self.symbol_objects[unique_symbol] = Symbol.new(unique_symbol)
-	
 	if not _terminal:
+		var ref_anchor = Anchor.new(0, 1, poly, 0, self.referenceAnchorMat, 0.76)
+		self.reference_anchors[unique_symbol] = ref_anchor
+	
+		# Symbol object (to be rendered)
+		var symbol_obj = Symbol.new(unique_symbol)
+		symbol_obj.add_reference_anchor(self.get_reference_anchor(unique_symbol))
+		self.symbol_objects[unique_symbol] = symbol_obj
+	
 		self.symbol_created.emit(unique_symbol)
+
 	
 	return unique_symbol
 
@@ -126,3 +146,13 @@ func display_meshes(symbol, rule_index, meshes):
 	
 func display_symbol_meshes(symbol, meshes):
 	self.buttons[symbol].display_symbol_meshes(meshes)
+	
+func get_reference_anchor(symbol):
+	# The anchor object does not want to be duplicated, so create a new mesh instance instead
+	var refanch = self.reference_anchors[symbol]
+	
+	var new_mesh_instance = MeshInstance3D.new()
+	new_mesh_instance.mesh = refanch.mesh
+	new_mesh_instance.material_override = refanch.material_override
+	
+	return new_mesh_instance

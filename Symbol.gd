@@ -24,3 +24,6 @@ func _ready():
 
 func _init(_symbol : GrammarSymbol):
 	self.symbol = _symbol 
+	
+func add_reference_anchor(anchor):
+	self.add_child(anchor)

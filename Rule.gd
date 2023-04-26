@@ -17,7 +17,6 @@ var index = -1
 var compiled = false
 
 var anchors = {}
-var referenceAnchorMat
 
 const simulacrumMat = preload("res://mats/simulacrum.tres")
 const contouredMat = preload("res://mats/contouredface.tres")
@@ -25,7 +24,6 @@ const anchorMat = preload("res://mats/anchor.tres")
 
 const contouredShader = preload("res://shaders/contouredface.gdshader")
 const contouredAlphaShader = preload("res://shaders/contouredface_alpha.gdshader")
-const anchor_tex = preload("res://icons/anchor.png")
 
 # Persistant:
 # * split_tree
@@ -42,13 +40,6 @@ func _init(shape, _index):
 	self.index = _index
 	
 	self.from_shape_poly = self.from_shape.get_polyhedron()
-	self.referenceAnchorMat = StandardMaterial3D.new()
-	self.referenceAnchorMat.albedo_color = Color(0, 0, 0, 0.15)
-	self.referenceAnchorMat.albedo_texture = self.anchor_tex
-	self.referenceAnchorMat.flags_transparent = StandardMaterial3D.Transparency.TRANSPARENCY_ALPHA
-	self.referenceAnchorMat.cull_mode = StandardMaterial3D.CULL_BACK
-	self.referenceAnchorMat.no_depth_test = true
-	self.referenceAnchorMat.render_priority = 100
 	
 func is_empty():
 	return self.meshes.size() == 0
@@ -120,13 +111,11 @@ func set_meshes(poly, mesh_instances, color: Color):
 	if self.leaf_polys.keys().size() == 0:
 		self.set_leafness(poly)
 		
-		# Add the anchor visualization
-		var new_anchor = Anchor.new(0, 1, poly, 0, self.referenceAnchorMat, 0.76)
-		
 		# Add copies of the meshes to the background
 		self._add_simulacrum(mesh_instances)
 		
-		pobj.add_child(new_anchor)
+func add_reference_anchor(anchor):
+	self.add_child(anchor)
 	
 func get_meshes(poly):
 	return self.meshes[poly]
