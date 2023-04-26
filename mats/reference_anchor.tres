@@ -1,0 +1,9 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3 uid="uid://m80ialgw8tgn"]
+
+[ext_resource type="Texture2D" uid="uid://cmomv1iuv7f8e" path="res://icons/anchor.png" id="1_mb1r6"]
+
+[resource]
+transparency = 1
+no_depth_test = true
+albedo_color = Color(0, 0, 0, 0.14902)
+albedo_texture = ExtResource("1_mb1r6")

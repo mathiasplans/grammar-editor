@@ -14,19 +14,7 @@ var reference_anchors = {}
 var index_counter = 0
 var non_terminal_index_counter = 0
 
-@onready var referenceAnchorMat
-
-const anchor_tex = preload("res://icons/anchor.png")
-
-func _ready():
-	self.referenceAnchorMat = StandardMaterial3D.new()
-	self.referenceAnchorMat.albedo_color = Color(0, 0, 0, 0.15)
-	self.referenceAnchorMat.albedo_texture = self.anchor_tex
-	self.referenceAnchorMat.flags_transparent = StandardMaterial3D.Transparency.TRANSPARENCY_ALPHA
-	self.referenceAnchorMat.cull_mode = StandardMaterial3D.CULL_BACK
-	self.referenceAnchorMat.no_depth_test = true
-	self.referenceAnchorMat.render_priority = 100
-
+const referenceAnchorMat = preload("res://mats/reference_anchor.tres")
 # Persistant:
 # * symbols
 # * symbols_id
