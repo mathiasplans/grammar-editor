@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://b05ly8tkkyqbc"]
+[gd_scene load_steps=41 format=3 uid="uid://b05ly8tkkyqbc"]
 
 [ext_resource type="Script" path="res://Root.gd" id="1"]
 [ext_resource type="Script" path="res://ToolOpt.gd" id="1_ac0rl"]
@@ -6,6 +6,15 @@
 [ext_resource type="Script" path="res://AnchorManager.gd" id="5"]
 [ext_resource type="Script" path="res://GrammarSymbolMaker.gd" id="6_j4m57"]
 [ext_resource type="Script" path="res://Cursors.gd" id="6_miobu"]
+[ext_resource type="Material" uid="uid://cqh4r5fmrem5l" path="res://mats/anchor.tres" id="7_nqmjk"]
+[ext_resource type="Material" uid="uid://brwty5y8ysil8" path="res://mats/contouredface.tres" id="8_6gll8"]
+[ext_resource type="Material" uid="uid://da04bio1inp6g" path="res://mats/cut.tres" id="9_rul7m"]
+[ext_resource type="Material" uid="uid://cunbqjdj500gg" path="res://mats/hower.tres" id="10_cvqnu"]
+[ext_resource type="Material" uid="uid://dfvmjc507s75k" path="res://mats/howerselect.tres" id="11_w775q"]
+[ext_resource type="Material" uid="uid://p5uqeio2n41n" path="res://mats/margin.tres" id="12_euwlv"]
+[ext_resource type="Material" uid="uid://m80ialgw8tgn" path="res://mats/reference_anchor.tres" id="13_p0oya"]
+[ext_resource type="Material" uid="uid://dj5108f65mf1b" path="res://mats/select.tres" id="14_ktuy1"]
+[ext_resource type="Material" uid="uid://dxnpt1n8kwghs" path="res://mats/simulacrum.tres" id="15_mkbwi"]
 
 [sub_resource type="GDScript" id="GDScript_4jyo7"]
 resource_name = "CompileButton"
@@ -1267,6 +1276,33 @@ shading_mode = 2
 specular_mode = 2
 albedo_color = Color(1, 0, 0, 1)
 
+[sub_resource type="GDScript" id="GDScript_cwybh"]
+script/source = "extends Node3D
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	self.visible = false
+"
+
+[sub_resource type="BoxMesh" id="BoxMesh_vx7xy"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_04y3e"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_uwenv"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_awaj5"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_rhuu1"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_mtwdu"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_o4cur"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_icqac"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_olybk"]
+
 [sub_resource type="GDScript" id="GDScript_r1mpe"]
 resource_name = "AddSymbol"
 script/source = "extends Button
@@ -1288,7 +1324,8 @@ func create_symbol(poly, _name=null):
 
 	var new_symbol_rules = symbol_rules.instantiate()
 	new_symbol_rules.symbol = sym
-	%SymbolRules.add_child(new_symbol_rules)
+	%SymbolRules.add_child.call_deferred(new_symbol_rules)
+	await new_symbol_rules.ready
 	
 	# Connect signals
 	new_symbol_rules.rule_created.connect(_on_rule_create)
@@ -1307,13 +1344,15 @@ func create_symbol(poly, _name=null):
 	
 	%Symbols.add_button(sym, new_symbol_rules)
 	
+	return new_symbol_rules
+	
 func add_symbol():
 	pass
 
 func _pressed():
 	# Create a cube for now
 	var cube = Cube.new(0.4)
-	self.create_symbol(cube)
+	await self.create_symbol(cube)
 
 func _on_rule_create(symbol, index):
 	%RuleManager.create_rule(symbol, index)
@@ -1332,6 +1371,21 @@ func _on_symbol_select(symbol):
 	
 func _on_symbol_delete(symbol):
 	%Symbols.delete_symbol(symbol)
+	
+func _ready():
+	# Enable loading screen
+	%Loading.visible = true
+	
+	# Create a cube for now
+	var cube = Cube.new(0.4)
+	var component = await self.create_symbol(cube)
+	component.create_rule()
+	await self.get_tree().process_frame
+	await self.get_tree().process_frame
+	await self.get_tree().process_frame
+	component.delete_symbol()
+	
+	%Loading.visible = false
 "
 
 [sub_resource type="GDScript" id="GDScript_s8l8w"]
@@ -1364,6 +1418,9 @@ func close():
 	%Explorer.visible = false
 	%Left.collapsed = true
 "
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mi2ym"]
+bg_color = Color(0.294118, 0.294118, 0.294118, 1)
 
 [node name="Control" type="Control"]
 layout_mode = 3
@@ -1584,6 +1641,46 @@ script = ExtResource("6_j4m57")
 transform = Transform3D(0.656559, 0, 0.754274, 0, 1, 0, -0.754274, 0, 0.656559, 1.85974, 0, 0.65363)
 light_energy = 0.3
 
+[node name="Cache" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport"]
+script = SubResource("GDScript_cwybh")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
+mesh = SubResource("BoxMesh_vx7xy")
+skeleton = NodePath("../..")
+surface_material_override/0 = ExtResource("7_nqmjk")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
+mesh = SubResource("BoxMesh_04y3e")
+surface_material_override/0 = ExtResource("8_6gll8")
+
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
+mesh = SubResource("BoxMesh_uwenv")
+surface_material_override/0 = ExtResource("9_rul7m")
+
+[node name="MeshInstance3D4" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
+mesh = SubResource("BoxMesh_awaj5")
+surface_material_override/0 = ExtResource("10_cvqnu")
+
+[node name="MeshInstance3D5" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
+mesh = SubResource("BoxMesh_rhuu1")
+surface_material_override/0 = ExtResource("11_w775q")
+
+[node name="MeshInstance3D6" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
+mesh = SubResource("BoxMesh_mtwdu")
+surface_material_override/0 = ExtResource("12_euwlv")
+
+[node name="MeshInstance3D7" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
+mesh = SubResource("BoxMesh_o4cur")
+surface_material_override/0 = ExtResource("13_p0oya")
+
+[node name="MeshInstance3D8" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
+mesh = SubResource("BoxMesh_icqac")
+surface_material_override/0 = ExtResource("14_ktuy1")
+
+[node name="MeshInstance3D9" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
+mesh = SubResource("BoxMesh_olybk")
+surface_material_override/0 = ExtResource("15_mkbwi")
+
 [node name="ExplorerWindow" type="VSplitContainer" parent="HSplitContainer/Left"]
 layout_mode = 2
 dragger_visibility = 2
@@ -1637,3 +1734,14 @@ unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
+
+[node name="Loading" type="Panel" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_mi2ym")

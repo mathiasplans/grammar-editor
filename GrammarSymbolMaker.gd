@@ -12,7 +12,7 @@ var buttons = {}
 var reference_anchors = {}
 
 var index_counter = 0
-var non_terminal_index_counter = 0
+var non_terminal_index_counter = -1
 
 const referenceAnchorMat = preload("res://mats/reference_anchor.tres")
 # Persistant:

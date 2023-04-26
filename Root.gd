@@ -24,6 +24,7 @@ const _env = preload("res://default_env.tres")
 func _ready():
 	%ToolOpt.mode_changed.connect(self._on_mode_change)
 	self.right_arrow_img = right_arrow.get_image()
+	self.presentation_rotation()
 
 # https://godotengine.org/qa/92394/can-i-split-texture-to-multiple-parts-or-crop-it
 func _get_cropped_texture(texture : Texture, region : Rect2) -> AtlasTexture:

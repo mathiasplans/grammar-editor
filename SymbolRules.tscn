@@ -26,19 +26,20 @@ var rules = {}
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	self.new_rule.rule_created.connect(_on_rule_create)
-	self.new_rule.rule_selected.connect(_on_rule_select)
-	self.new_rule.rule_deleted.connect(_on_rule_delete)
-	
-	# Set the default name
-	$Flow/SymbolContainer.rename(symbol.text)
-	
-	$Flow/SymbolContainer.retexted.connect(_on_symbol_rename)
-	$Flow/SymbolContainer.selected.connect(_on_symbol_select)
-	$Flow/SymbolContainer.deleted.connect(_on_symbol_delete)
-	
-	$Flow/SymbolContainer.always_display_name = true
-	$Flow/SymbolContainer.set_viewbutton_visibility()
+	if symbol != null:
+		self.new_rule.rule_created.connect(_on_rule_create)
+		self.new_rule.rule_selected.connect(_on_rule_select)
+		self.new_rule.rule_deleted.connect(_on_rule_delete)
+		
+		# Set the default name
+		$Flow/SymbolContainer.rename(symbol.text)
+		
+		$Flow/SymbolContainer.retexted.connect(_on_symbol_rename)
+		$Flow/SymbolContainer.selected.connect(_on_symbol_select)
+		$Flow/SymbolContainer.deleted.connect(_on_symbol_delete)
+		
+		$Flow/SymbolContainer.always_display_name = true
+		$Flow/SymbolContainer.set_viewbutton_visibility()
 
 func _on_rule_create(index, object):
 	self.rules[index] = object
@@ -73,6 +74,12 @@ func display_meshes(index, meshes):
 	
 func display_symbol_meshes(meshes):
 	$Flow/SymbolContainer.display_meshes(meshes)
+	
+func create_rule():
+	self.new_rule.create_rule()
+	
+func delete_symbol():
+	self._on_symbol_delete(-1)
 "
 
 [sub_resource type="GDScript" id="GDScript_1rxvp"]
