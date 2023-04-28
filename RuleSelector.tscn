@@ -20,6 +20,13 @@ var mousein = false
 
 var always_display_name = false
 
+func save():
+	return [index, text]
+	
+func l(data):
+	self.index = data[0]
+	self.rename(data[1])
+
 func _ready():
 	%ViewButton.button_down.connect(_on_selected)
 	%ViewButton/Name.text_submitted.connect(_on_name_change)

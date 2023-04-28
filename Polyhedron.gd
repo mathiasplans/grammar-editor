@@ -1,4 +1,4 @@
-extends Node
+extends Resource
 class_name Polyhedron
 
 var vertices = []
@@ -16,6 +16,8 @@ var cut_face_to_face = {}
 var symbol = null
 var original = false
 
+const face_obj_scene = preload("res://face.tscn")
+
 # Persistant:
 # * vertices
 # * directed
@@ -23,6 +25,25 @@ var original = false
 #   - from these three, call complete()
 # * symbol
 # * original
+
+func save():
+	var sym = ""
+	if self.symbol != null:
+		sym = self.symbol.text
+	return [self.vertices, self.directed, self.faces, self.original]
+	
+func l(data):
+	self.vertices = data[0]
+	self.directed = data[1]
+	self.faces = data[2]
+	self.original = data[3]
+	
+	self.complete()
+	
+static func from_data(data):
+	var new_poly = Polyhedron.new()
+	new_poly.l(data)
+	return new_poly
 
 func _init(_symbol=null):
 	self.symbol = _symbol
@@ -80,7 +101,10 @@ func _create_face_object(face_i):
 	var hull_indices = self.faces[face_i]
 	
 	# Create the instance for the mesh
-	return Face.new(mesh, self, hull_indices, face_i)
+	var face_obj = face_obj_scene.instantiate()
+	face_obj.init(mesh, self, hull_indices, face_i)
+	
+	return face_obj
 	
 func get_face_objects():
 	return self.face_objs

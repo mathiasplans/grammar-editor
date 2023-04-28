@@ -1,7 +1,7 @@
 extends MeshInstance3D
 class_name Face
 
-signal create_cut(cut_plane)
+signal cut_created(cut_plane)
 
 var in_area = false
 var selected = false
@@ -14,8 +14,8 @@ var normal = null
 var face_i
 var mat
 
-@onready var selector = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor/Selector"
-@onready var cursors = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor/Cursors"
+@onready var selector = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root/Editor/Selector"
+@onready var cursors = $"/root/Control/HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root/Editor/Cursors"
 
 const howerMat = preload("res://mats/hower.tres")
 const selectMat = preload("res://mats/select.tres")
@@ -46,7 +46,7 @@ func create_better_outline(margin):
 	
 	return st.commit()
 
-func _init(_mesh, _poly, _hull_indices, _face_i):
+func init(_mesh, _poly, _hull_indices, _face_i):
 	self.mesh = _mesh
 	self.poly = _poly
 	self.hull_indices = _hull_indices
@@ -63,9 +63,19 @@ func _init(_mesh, _poly, _hull_indices, _face_i):
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	var _con1 = $Area3D.connect("mouse_entered",Callable(self,"_on_area_enter"))
-	var _con2 = $Area3D.connect("mouse_exited",Callable(self,"_on_area_exit"))
-	var _con3 = $Area3D.connect("input_event",Callable(self,"_on_area_input_event"))
+	# Add collision
+	var colshape = ConcavePolygonShape3D.new()
+	
+	var polygons = self.mesh.get_faces()
+	colshape.set_faces(polygons)
+	$Area3D/ColShape.set_shape(colshape)
+	
+	# Set needed attributes
+	$Area3D.input_ray_pickable = true
+	
+	# Connect signals	
+	$Area3D.mouse_entered.connect(self._on_area_enter)
+	$Area3D.mouse_exited.connect(self._on_area_exit)
 	
 	var outline_mesh = self.create_better_outline(0.012)
 	self.outline = MeshInstance3D.new()
@@ -173,7 +183,7 @@ func _input(event):
 						cut_plane.cut_complete.connect(self._on_cut_complete)
 						
 						self.cut_plane_exists = true
-						self.create_cut.emit(cut_plane)
+						self.cut_created.emit(cut_plane)
 						
 						self.selector.disable()
 						self.deemphasize()
@@ -181,9 +191,6 @@ func _input(event):
 func _on_cut_complete(_cut_plane, _poly):
 	self.cut_plane_exists = false
 	self.selector.enable()
-
-func _on_area_input_event(_camera, _event, _click_position, _click_normal, _shape_idx):
-	pass
 
 func set_anchor(_anchor):
 	if self.anchor != null:

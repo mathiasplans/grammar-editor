@@ -14,6 +14,23 @@ var rule_weights_sum = 0
 
 var rng = RandomNumberGenerator.new()
 
+func save():
+	return [id, text, nr_of_vertices, faces, terminal]
+	
+func l(data):
+	self.id = data[0]
+	self.text = data[1]
+	self.nr_of_vertices = data[2]
+	self.faces = data[3]
+	self.terminal = data[4]
+	
+static func from_data(data):
+	var new_sym = GrammarSymbol.new(data[2], data[3], data[4])
+	new_sym.id = data[0]
+	new_sym.text=  data[1]
+	
+	return new_sym
+	
 func _init(_nr_of_verts,_faces,_terminal=true):
 	self.nr_of_vertices = _nr_of_verts
 	self.faces = _faces.duplicate(true)

@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://ca4bocx3fd4bd"]
+
+[ext_resource type="Script" path="res://Face.gd" id="1_41oob"]
+
+[node name="Face" type="MeshInstance3D"]
+script = ExtResource("1_41oob")
+
+[node name="Area3D" type="Area3D" parent="."]
+
+[node name="ColShape" type="CollisionShape3D" parent="Area3D"]

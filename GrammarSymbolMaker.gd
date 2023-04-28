@@ -22,12 +22,38 @@ const referenceAnchorMat = preload("res://mats/reference_anchor.tres")
 # * index_counter
 # * non_terminal_index_counter
 
+func save():
+	return [index_counter, non_terminal_index_counter]
+	
+func l(data):
+	var ic = data[0]
+	var ntic = data[1]
+	
+	self.index_counter = ic
+	self.non_terminal_index_counter = ntic
+	
+	print(self.symbols.keys())
+
 func _poly_to_symbol(poly, _terminal=true):
 	assert(poly.is_ordered(), "The polygon has to be ordered by anchor first before it can be turned into a symbol")
 	
 	var newsym = GrammarSymbol.new(poly.vertices.size(), poly.faces, _terminal)
 	return newsym
+
+func _create_default_shape(unique_symbol, poly, _terminal=true):
+	self.default_shape[unique_symbol] = GrammarShape.new(unique_symbol, poly.vertices)
 	
+	if not _terminal:
+		var ref_anchor = Anchor.new(0, 1, poly, 0, self.referenceAnchorMat, 0.76)
+		self.reference_anchors[unique_symbol] = ref_anchor
+	
+		# Symbol object (to be rendered)
+		var symbol_obj = Symbol.new(unique_symbol)
+		symbol_obj.add_reference_anchor(self.get_reference_anchor(unique_symbol))
+		self.symbol_objects[unique_symbol] = symbol_obj
+		
+		self.symbol_created.emit(unique_symbol)
+
 func from_polyhedron(poly, _terminal=true):
 	# Get a unique symbol
 	var unique_symbol = _poly_to_symbol(poly, _terminal)
@@ -62,19 +88,7 @@ func from_polyhedron(poly, _terminal=true):
 	self.symbols_id[unique_symbol.id] = unique_symbol
 	
 	# Create a default shape object
-	self.default_shape[unique_symbol] = GrammarShape.new(unique_symbol, poly.vertices)
-	
-	if not _terminal:
-		var ref_anchor = Anchor.new(0, 1, poly, 0, self.referenceAnchorMat, 0.76)
-		self.reference_anchors[unique_symbol] = ref_anchor
-	
-		# Symbol object (to be rendered)
-		var symbol_obj = Symbol.new(unique_symbol)
-		symbol_obj.add_reference_anchor(self.get_reference_anchor(unique_symbol))
-		self.symbol_objects[unique_symbol] = symbol_obj
-	
-		self.symbol_created.emit(unique_symbol)
-
+	_create_default_shape(unique_symbol, poly, _terminal)
 	
 	return unique_symbol
 
@@ -98,6 +112,7 @@ func rename(symbol, new_text):
 	self.symbol_renamed.emit(symbol, new_text)
 
 func delete_symbol(symbol):
+	%RuleManager.if_symbol_set_to_none(symbol)
 	self.symbol_deleted.emit(symbol)
 	
 	self.symbols.erase(symbol.text)

@@ -1,6 +1,8 @@
 extends Node3D
 class_name Rule
 
+signal cut_created(cut_plane)
+
 var meshes = {}
 var split_tree = null
 var split_root = null
@@ -18,6 +20,8 @@ var compiled = false
 
 var anchors = {}
 
+var rng
+
 const simulacrumMat = preload("res://mats/simulacrum.tres")
 const contouredMat = preload("res://mats/contouredface.tres")
 const anchorMat = preload("res://mats/anchor.tres")
@@ -26,7 +30,6 @@ const contouredShader = preload("res://shaders/contouredface.gdshader")
 const contouredAlphaShader = preload("res://shaders/contouredface_alpha.gdshader")
 
 # Persistant:
-# * split_tree
 # * split_root
 # * poly_to_treeitem
 # * leaf_polys -> meshes
@@ -35,9 +38,48 @@ const contouredAlphaShader = preload("res://shaders/contouredface_alpha.gdshader
 # * index
 # * anchors (keys)
 
+func color_gen():
+	return Color(self.rng.randf_range(0.5, 0.9), self.rng.randf_range(0.5, 0.9), self.rng.randf_range(0.5, 0.9), 1.0)
+
+func save():
+	var tree_store = []
+	TreeManager.serialize_tree(split_root, tree_store)
+	return [tree_store]
+
+func l(data):
+	# Clear current tree
+	self.split_tree.clear()
+	
+	# Clear current polys
+	for poly in self.poly_obj.keys():
+		self.poly_obj[poly].queue_free()
+		
+	# Clear current meshes
+	self.meshes = {}
+	
+	# Load the tree
+	TreeManager.deserialize_tree(self.split_tree, null, data[0], 0)
+	self.split_root = self.split_tree.get_root()
+	
+	# Get other data
+	self.poly_to_treeitem = {}
+	TreeManager.get_polytoitem(self.poly_to_treeitem, self.split_root)
+	
+	self.leaf_polys = {}
+	TreeManager.get_leafpolys(self.leaf_polys, self.split_root)
+	
+	self.colors = {}
+	var rng = RandomNumberGenerator.new()
+	for poly in self.poly_to_treeitem:
+		if self.leaf_polys.has(poly):
+			self.add_meshes(poly)
+		self.colors[poly] = color_gen() 
+	
+
 func _init(shape, _index):
 	self.from_shape = shape
 	self.index = _index
+	self.rng = RandomNumberGenerator.new()
 	
 	self.from_shape_poly = self.from_shape.get_polyhedron()
 	
@@ -95,24 +137,33 @@ func _add_simulacrum(mesh_instances):
 		
 		self.add_child(newmi)
 
-func set_meshes(poly, mesh_instances, color: Color):
-	self.meshes[poly] = mesh_instances
+func _on_cut_created(cut_plane):
+	self.cut_created.emit(cut_plane)
+
+func add_meshes(poly):
+	var faces = poly.get_face_objects()
+	self.meshes[poly] = faces
 	
+	for face in faces:
+		face.cut_created.connect(_on_cut_created)
+	
+	var new_color = self.color_gen()
 	var newMat = self.contouredMat.duplicate()
-	newMat.set_shader_parameter("albedo_color", color)
-	
-	self.colors[poly] = color
+	newMat.set_shader_parameter("albedo_color", new_color)
+	self.colors[poly] = new_color
 	
 	var pobj = self.get_pobj(poly)
-	for meshi in mesh_instances:
-		pobj.add_child(meshi)
-		meshi.set_mat(newMat)
+	for face in faces:
+		pobj.add_child(face)
+		face.set_mat(newMat)
 	
 	if self.leaf_polys.keys().size() == 0:
 		self.set_leafness(poly)
 		
 		# Add copies of the meshes to the background
-		self._add_simulacrum(mesh_instances)
+		self._add_simulacrum(faces)
+		
+	return faces
 		
 func add_reference_anchor(anchor):
 	self.add_child(anchor)

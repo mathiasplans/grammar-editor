@@ -1,20 +1,13 @@
-[gd_scene load_steps=41 format=3 uid="uid://b05ly8tkkyqbc"]
+[gd_scene load_steps=23 format=3 uid="uid://b05ly8tkkyqbc"]
 
 [ext_resource type="Script" path="res://Root.gd" id="1"]
+[ext_resource type="Script" path="res://Saver.gd" id="1_43r8s"]
 [ext_resource type="Script" path="res://ToolOpt.gd" id="1_ac0rl"]
 [ext_resource type="Script" path="res://Selector.gd" id="4"]
+[ext_resource type="Script" path="res://TreeManager.gd" id="4_dt0xj"]
 [ext_resource type="Script" path="res://AnchorManager.gd" id="5"]
 [ext_resource type="Script" path="res://GrammarSymbolMaker.gd" id="6_j4m57"]
 [ext_resource type="Script" path="res://Cursors.gd" id="6_miobu"]
-[ext_resource type="Material" uid="uid://cqh4r5fmrem5l" path="res://mats/anchor.tres" id="7_nqmjk"]
-[ext_resource type="Material" uid="uid://brwty5y8ysil8" path="res://mats/contouredface.tres" id="8_6gll8"]
-[ext_resource type="Material" uid="uid://da04bio1inp6g" path="res://mats/cut.tres" id="9_rul7m"]
-[ext_resource type="Material" uid="uid://cunbqjdj500gg" path="res://mats/hower.tres" id="10_cvqnu"]
-[ext_resource type="Material" uid="uid://dfvmjc507s75k" path="res://mats/howerselect.tres" id="11_w775q"]
-[ext_resource type="Material" uid="uid://p5uqeio2n41n" path="res://mats/margin.tres" id="12_euwlv"]
-[ext_resource type="Material" uid="uid://m80ialgw8tgn" path="res://mats/reference_anchor.tres" id="13_p0oya"]
-[ext_resource type="Material" uid="uid://dj5108f65mf1b" path="res://mats/select.tres" id="14_ktuy1"]
-[ext_resource type="Material" uid="uid://dxnpt1n8kwghs" path="res://mats/simulacrum.tres" id="15_mkbwi"]
 
 [sub_resource type="GDScript" id="GDScript_4jyo7"]
 resource_name = "CompileButton"
@@ -71,6 +64,7 @@ class_name RuleManager
 signal rule_changed(old_rule, created)
 signal rule_edited(rule)
 signal symbol_displayed(symbol, display)
+signal cut_created(cut_plane)
 
 var current_symbol
 var rules = {}
@@ -80,9 +74,44 @@ var rule_i = 0
 # Persistant:
 # * rules
 
+func save():
+	var data = {}
+	for rule_key in self.rules:
+		var sym = rule_key[0]
+		var index = rule_key[1]
+		
+		var rule = self.rules[rule_key]
+		var rule_save = rule.save()
+		
+		data[[sym.text, index]] = rule_save
+		
+	return data
+	
+func l(data):
+	var indices = {}
+	for sym_key in data:
+		var sym_text = sym_key[0]
+		var symbol = %Symbols.get_symbol(sym_text)
+		
+		var index
+		if indices.has(symbol):
+			index = indices[symbol]
+			indices[symbol] = index + 1
+			
+		else:
+			index = 0
+			indices[symbol] = 1
+		
+		self.rules[[symbol, index]].l(data[sym_key])
+		
+	$TreeManager.refresh_all()
+	
 func _ready():	
 	# Connect signals
 	$TreeManager.tree_edited.connect(self._edited)
+
+func _on_cut_created(cut_plane):
+	self.cut_created.emit(cut_plane)
 
 func create_rule(symbol : GrammarSymbol, index):
 	var shape = %Symbols.get_default_shape(symbol)
@@ -93,9 +122,13 @@ func create_rule(symbol : GrammarSymbol, index):
 	$TreeManager.create_tree(new_rule, new_rule.from_shape_poly)
 	
 	self.rules[[symbol, index]] = new_rule
+		
+	# Connect signals
+	new_rule.cut_created.connect(self._on_cut_created)
 	
 	# Switch to new rule
 	self.set_to_rule(symbol, index)
+
 	
 	return new_rule
 	
@@ -146,14 +179,13 @@ func _rule_changed(old_rule, just_created):
 		self.visaul_changed()
 	
 func set_to_no_rule():
-	if %Tester.active():
-		return
-		
+	var old_symbol = self.current_symbol
 	var old_rule = self.current_rule
 	self.current_rule = null
 	self.rule_i = -1
 	$TreeManager.remove_tree()
 	
+	self.symbol_displayed.emit(old_symbol, false)
 	self._rule_changed(old_rule, false)
 
 func set_to_rule(symbol, index):
@@ -186,6 +218,10 @@ func set_to_symbol(symbol):
 	
 	self.symbol_displayed.emit(old_symbol, false)
 	self.symbol_displayed.emit(symbol, true)
+	
+func if_symbol_set_to_none(symbol):
+	if self.current_rule == null and self.current_symbol == symbol:
+		self.set_to_no_rule()
 	
 func is_compiled():
 	return self.current_rule != null and self.current_rule.compiled
@@ -261,9 +297,10 @@ func set_transparency(poly, t, rule=self.current_rule):
 func set_collision(poly, c, rule=self.current_rule):
 	rule.set_collision(poly, c)
 
-func set_meshes(poly, mesh_instances, color: Color, rule=self.current_rule):
-	rule.set_meshes(poly, mesh_instances, color)
+func add_meshes(poly, rule=self.current_rule):
+	var mesh_instances = rule.add_meshes(poly)
 	self.display_meshes(rule)
+	return mesh_instances
 	
 func get_meshes(poly, rule=self.current_rule):
 	return rule.get_meshes(poly)
@@ -332,535 +369,6 @@ func get_corners(transform, rule=self.current_rule):
 		
 	else:
 		return null
-"
-
-[sub_resource type="GDScript" id="GDScript_xx60u"]
-resource_name = "TreeManager"
-script/source = "extends Node
-
-signal tree_edited
-
-const button_visible_tex = preload(\"res://icons/GuiVisibilityVisible.svg\")
-const button_hidden_tex = preload(\"res://icons/GuiVisibilityHidden.svg\")
-const button_epsilon = preload(\"res://icons/Greek_lc_epsilon.png\")
-const button_epsilon_not = preload(\"res://icons/Greek_lc_epsilon_dis.png\")
-const shape_icon = preload(\"res://icons/aneZtd-cube-cut-out.png\")
-const scissors_icon = preload(\"res://icons/scissors.png\")
-const button_xray_tex = preload(\"res://icons/GuiVisibilityXray.svg\")
-
-enum {NODE_POLY, NODE_SPLIT}
-enum {TREE_SYMBOL, tree_nr_of_cols, TREE_META = TREE_SYMBOL, TREE_BUTTONS = TREE_SYMBOL}
-enum {BUTTON_HIDE, BUTTON_EPSILON, BUTTON_CREATE_SYMBOL, tree_nr_of_buttons}
-enum {VIS_XRAY, VIS_VISIBLE, VIS_amount}
-
-var hidden_to_tex = {VIS_VISIBLE: button_visible_tex, VIS_XRAY: button_hidden_tex}
-var epsilon_to_tex = {true: button_epsilon, false: button_epsilon_not}
-
-var trees = []
-var current_tree
-
-var tree_symbols = {}
-var tree_to_rule = {}
-
-# Persistant:
-# * trees
-# * tree_symbols
-# * tree_to_rule
-
-func _ready():
-	%Editor/Selector.polyhedron_selected.connect(_on_polyhedron_selected)
-	%Editor/Selector.polyhedron_deselected.connect(_on_polyhedron_deselect)
-	
-	%Symbols.symbol_created.connect(_on_symbol_create)
-	%Symbols.symbol_deleted.connect(_on_symbol_delete)
-	%Symbols.symbol_renamed.connect(_on_symbol_rename)
-
-func _hidden_button_change(treeitem, tm):
-	var hide_index = treeitem.get_button_by_id(TREE_BUTTONS, BUTTON_HIDE)
-	treeitem.set_button(TREE_BUTTONS, hide_index, hidden_to_tex[tm.hidden])
-
-class TreeMeta:
-	var poly = null
-	var split = null
-	var parent_split = null
-	var hidden = VIS_VISIBLE
-	var epsilon = false
-	var leaf = true
-	var other_hidden = VIS_VISIBLE
-	var cut_type = Mode.NONE
-	
-	var parent_indices = []
-	var constructions = []
-	
-	var rotations = []
-	
-# Persistant:
-# * poly
-# * split
-# * parent_split
-# * epsilon
-# * leaf
-# * cut-type
-# * parent_indices
-# * constructions
-# * rotations
-
-static func _add_epsilon_button(item):
-	item.add_button(TREE_BUTTONS, button_epsilon_not, BUTTON_EPSILON, false, \"Convert this shape into an empty shape\")
-
-static func _treeitem_setup(item, metadata, _text):
-	_add_epsilon_button(item)
-	item.add_button(TREE_BUTTONS, button_visible_tex, BUTTON_HIDE, false, \"Change the visibility of this shape\")
-	
-	item.set_metadata(TREE_META, metadata)
-	#item.set_text(TREE_TEXT, text)
-	
-	item.set_icon(0, shape_icon)
-	
-	item.set_editable(TREE_SYMBOL, true)
-	
-# Called when the node enters the scene tree for the first time.
-func create_tree(rule, poly):
-	# Temporary
-	rule.split_tree = Tree.new()
-	var new_tree = rule.split_tree
-	
-	rule.split_tree.columns = tree_nr_of_cols
-	rule.split_root = new_tree.create_item()
-	var tm = TreeMeta.new()
-	tm.poly = poly
-	
-	for i in rule.from_shape.symbol.nr_of_vertices:
-		tm.parent_indices.push_back(i)
-
-	rule.poly_to_treeitem[poly] = rule.split_root
-
-	_treeitem_setup(rule.split_root, tm, \"A\")
-	
-	# Connect the signals
-	rule.split_tree.button_clicked.connect(_on_tree_button)
-	rule.split_tree.item_selected.connect(_on_tree_selected)
-	rule.split_tree.item_edited.connect(_on_item_edited)
-
-	self.trees.push_back(new_tree)
-	self.tree_symbols[new_tree] = {}
-	
-	for symbol in %Symbols.get_symbols():
-		self.tree_symbols[new_tree][symbol] = []
-		
-	self.tree_to_rule[new_tree] = rule
-
-	return new_tree
-	
-func delete_tree(tree):
-	self.tree_symbols.erase(tree)
-	self.trees.erase(tree)
-	tree.queue_free()
-	
-func remove_tree():
-	if self.current_tree != null:
-		%TreeParent.remove_child(self.current_tree)
-		
-	self.current_tree = null
-	
-func set_tree(tree):
-	if tree != null:
-		if self.current_tree != null:
-			%TreeParent.remove_child(self.current_tree)
-		
-		self.current_tree = tree
-		%TreeParent.add_child(self.current_tree)
-	
-func create_child_item(cut, parent_poly, cut_planes, text, sym=null):
-	var parent_treeitem = %RuleManager.get_treeitem(parent_poly)
-	
-	var poly = cut[0]
-	var pos = cut[1]
-	var construction = cut[2]
-	
-	# Set the symbol
-	poly.symbol = sym
-	
-	# Add the new polyhedrons and the split to the tree
-	var new_treeitem = self.current_tree.create_item(parent_treeitem)
-	
-	var tm = TreeMeta.new()
-	tm.poly = poly
-	tm.parent_split = cut_planes
-	tm.parent_indices = pos
-	tm.constructions = construction
-	
-	_treeitem_setup(new_treeitem, tm, text)
-	
-	%RuleManager.set_treeitem(poly, new_treeitem)
-	%RuleManager.set_leafness(poly)
-	
-	self.tree_edited.emit()
-	
-func remove_leafness(poly, rule):
-	var item = %RuleManager.get_treeitem(poly, rule)
-	
-	var tm = item.get_metadata(TREE_META)
-	tm.leaf = false
-	
-	# Change the icon
-	item.set_icon(TREE_SYMBOL, scissors_icon)
-	
-	# Remove the epsilon button
-	var index = item.get_button_by_id(TREE_BUTTONS, BUTTON_EPSILON)
-	item.erase_button(TREE_BUTTONS, index)
-	
-	# Make the text non-editable
-	item.set_editable(TREE_SYMBOL, false)
-	
-	if %RuleManager.current_rule == rule:
-		self.tree_edited.emit()
-	
-func add_split(poly, split):
-	var item = %RuleManager.get_treeitem(poly)
-	var tm = item.get_metadata(TREE_META)
-	tm.split = split
-	tm.cut_type = split.cut_mode
-	
-	self.tree_edited.emit()
-	
-func add_rotation(poly, rotation):
-	var item = %RuleManager.get_treeitem(poly)
-	var tm = item.get_metadata(TREE_META)
-	tm.rotations.push_back(rotation)
-	
-	self.tree_edited.emit()
-
-func _treeitem_set_visibility(item):
-	var tm = item.get_metadata(TREE_META)
-	if tm.leaf:
-		var state = tm.hidden
-		
-		var t = false
-		if tm.epsilon:
-			%RuleManager.set_visibility(tm.poly, false)
-			
-		elif state == VIS_XRAY:
-			t = true
-			%RuleManager.set_visibility(tm.poly, true)
-			
-		elif state == VIS_VISIBLE:
-			%RuleManager.set_visibility(tm.poly, true)
-			
-		if t:
-			%RuleManager.set_transparency(tm.poly, 0.2)
-			%RuleManager.set_collision(tm.poly, false)
-			
-		else:
-			%RuleManager.set_transparency(tm.poly, 1.0)
-			%RuleManager.set_collision(tm.poly, true)
-
-func _treeitem_visible(item, vis):
-	var tm = item.get_metadata(TREE_META)
-	tm.hidden = vis
-	
-	# Change the icon
-	self._hidden_button_change(item, tm)
-	
-	if not tm.epsilon:	
-		_treeitem_set_visibility(item)
-
-		var children = item.get_children()
-		for child in children:
-			_treeitem_visible(child, vis)
-			
-func _treeitem_epsilonize(item, eps):
-	var tm = item.get_metadata(TREE_META)
-	tm.epsilon = eps
-	
-	_treeitem_set_visibility(item)
-	
-	var epsilon_index = item.get_button_by_id(TREE_BUTTONS, BUTTON_EPSILON)
-	item.set_button(TREE_BUTTONS, epsilon_index, epsilon_to_tex[tm.epsilon])
-	
-	self.tree_edited.emit()
-
-func _on_tree_button(item, column, id, _mouse_button_index):
-	var tm = item.get_metadata(TREE_META)
-	if column == TREE_BUTTONS:
-		if id == BUTTON_HIDE:
-			%Editor/Selector.select_clear()
-			
-			if Input.is_physical_key_pressed(KEY_SHIFT):
-				if tm.other_hidden == VIS_XRAY:
-					tm.other_hidden = VIS_VISIBLE
-				
-				else:
-					tm.other_hidden = VIS_XRAY
-				
-				var parent = item.get_parent()
-				
-				while parent != null:
-					var children = parent.get_children()
-					for child in children:
-						if child != item:
-							self._treeitem_visible(child, tm.other_hidden)
-							
-					item = parent
-					parent = parent.get_parent()
-
-			else:
-				self._treeitem_visible(item, (tm.hidden + 1) % VIS_amount)
-			
-		elif id == BUTTON_EPSILON:
-			%Editor/Selector.select_clear()
-			self._treeitem_epsilonize(item, not tm.epsilon)
-			%RuleManager.visaul_changed()
-			
-		elif id == BUTTON_CREATE_SYMBOL:
-			%Editor/Selector.select_clear()
-			var rule = %RuleManager.get_rule()
-			self._on_item_edited(item)
-			%AddSymbol.create_symbol(tm.poly, item.get_text(TREE_SYMBOL))
-			self.anchor_update(item, rule)
-			
-
-func _on_tree_selected():
-	var selected_item = self.current_tree.get_selected()
-	var meta = selected_item.get_metadata(TREE_META)
-	
-	# Get one of the faces
-	if %RuleManager.is_leaf(meta.poly):
-		var face = %RuleManager.get_meshes(meta.poly)[0]
-	
-		# Select signal should be omited for the next selection
-		%Editor/Selector.no_select_signal()
-		%Editor/Selector.select_poly(face)
-		
-	else:
-		pass
-	
-func _on_polyhedron_selected(poly, rule):
-	var item = rule.get_treeitem(poly)
-	item.select(TREE_SYMBOL)
-	
-func _on_polyhedron_deselect(poly, rule):
-	var item = rule.get_treeitem(poly)
-	item.deselect(TREE_SYMBOL)
-
-# The goal is to unravel the tree, converting all the position
-# and consturction indices into a global index space.
-# 
-# We know the original shape symbol, which is required for the creation of
-# the rule. The symbol determines the first indices (they are the original indices).
-# The indices after that have to be added recursively.
-#
-# The recursion step is as follows:
-#  1. Get the map from polyhedrons indices to global indices
-#  2. Translate the translations and constructions indices to global indices
-#    - if an index does not exist, create it (GrammarRule::add_*_vertex)
-#    - this new index should also be added to the global mapper
-#  3. Repeat on the child, with parents global indices as the base for the position
-#  4. At leaves, add productions
-func _get_grammar_rule(item, parent_global_indices, rule_object):
-	var tm = item.get_metadata(TREE_META)
-	# If epsilon, do nothing
-	if tm.epsilon:
-		return
-	
-	# Get the rotation
-	var vert_rotation = []
-	for i in tm.poly.vertices.size():
-		vert_rotation.push_back(i)
-
-	for rot in tm.rotations:
-		var new_rotation = []
-
-		for new_i in rot.size():
-			var old_i = rot[new_i]
-			new_rotation.push_back(vert_rotation[old_i])
-
-		vert_rotation = new_rotation
-	
-	# Construct new vertices.
-	# This has to be done before the local_to_global because
-	# some vertices that need to be constructed are not
-	# in parent_indices.
-	var cons = {}
-	for i in tm.constructions:
-		var inter_data = tm.constructions[i]
-		
-		var global_a
-		var global_b
-		
-		if cons.has(inter_data[0]):
-			global_a = cons[inter_data[0]]
-				
-		else:
-			global_a = parent_global_indices[inter_data[0]]
-			
-		if cons.has(inter_data[1]):
-			global_b = cons[inter_data[1]]
-			
-		else:
-			global_b = parent_global_indices[inter_data[1]]
-		
-		var new_index = rule_object.add_interpolated_vertex(global_a, global_b, inter_data[2])
-		cons[i] = new_index
-	
-	# Get the global indices of the local poly
-	var local_to_global = []
-	for i in tm.parent_indices:
-		# The vertex has to be constructed (a cut vertex)
-		if tm.constructions.has(i):
-			var new_index = cons[i]
-			local_to_global.push_back(new_index)
-			
-		# The vertex is inherited from the parent
-		else:
-			local_to_global.push_back(parent_global_indices[i])
-			
-	# Rotate the local vertices
-	var rotated_local_to_global = []
-	rotated_local_to_global.resize(local_to_global.size())
-	Polyhedron._place(rotated_local_to_global, local_to_global, vert_rotation)
-	
-	# Recursion step
-	var children = item.get_children()
-	
-	# Leaf case
-	if children.size() == 0:
-		# Get the symbol
-		var sym = tm.poly.symbol
-		
-		# If the symbol does not exist, create a new one
-		if sym == null:
-			sym = %Symbols.from_polyhedron(tm.poly)
-		
-		# Add the production
-		rule_object.add_product(sym, rotated_local_to_global)
-	
-	# Call for each child
-	else:
-		for child in children:
-			_get_grammar_rule(child, rotated_local_to_global, rule_object)
-	
-func create_grammar_rule(rule=%RuleManager.current_rule):
-	var index = rule.index
-	var symbol = rule.from_shape.symbol
-	var root_item = rule.split_root
-
-	var new_rule = GrammarRule.new(index, symbol)
-	
-	var indices = []
-	for i in symbol.nr_of_vertices:
-		indices.push_back(i)
-	
-	# Populate the rule with construction vertices
-	self._get_grammar_rule(root_item, indices, new_rule)
-	
-	return new_rule
-
-const _matching_sym_color = Color(0.3, 1, 0.1, 0.05)
-
-func _remove_anchor(rule, treeitem, sym):
-	if sym == null:
-		return
-	
-	var tm = treeitem.get_metadata(TREE_META)
-	
-	treeitem.clear_custom_bg_color(TREE_SYMBOL)
-	tm.poly.symbol = null
-	
-	%Editor/AnchorManager.remove_poly(tm.poly)
-	%RuleManager.remove_anchor(tm.poly, rule)
-
-	if self.tree_symbols.has(self.current_tree):
-		self.tree_symbols[self.current_tree][sym].erase(treeitem)
-
-func anchor_update(item, rule=null):
-	var new_text = item.get_text(TREE_SYMBOL)
-	var tm = item.get_metadata(TREE_META)
-	
-	var old_sym = tm.poly.symbol
-
-	# Does this symbol exist?
-	if %Symbols.symbols.has(new_text):
-		item.set_custom_bg_color(TREE_SYMBOL, _matching_sym_color)
-		var sym = %Symbols.symbols[new_text]
-		if sym != old_sym:
-			# Remove the old anchor
-			self._remove_anchor(%RuleManager.current_rule, item, old_sym)
-			
-			tm.poly.symbol = sym
-			
-			var anchor_node = %Editor/AnchorManager.add_poly(tm.poly, sym)
-			
-			# Use the current rule and tree
-			if rule == null:
-				rule = %RuleManager.get_rule()
-				
-			%RuleManager.add_anchor(tm.poly, anchor_node, rule)
-		
-		var epsilon_index = item.get_button_by_id(TREE_BUTTONS, BUTTON_EPSILON)
-		item.set_button_disabled(TREE_BUTTONS, epsilon_index, true)
-		self.disable_create_symbol(item)
-		
-	# Change from a symbol to not symbol
-	else:
-		# Remove the old anchor
-		self._remove_anchor(%RuleManager.current_rule, item, old_sym)
-		
-		if new_text == \"\":
-			
-			var epsilon_index = item.get_button_by_id(TREE_BUTTONS, BUTTON_EPSILON)
-			item.set_button_disabled(TREE_BUTTONS, epsilon_index, false)
-			self.disable_create_symbol(item)
-			
-		else:
-			var epsilon_index = item.get_button_by_id(TREE_BUTTONS, BUTTON_EPSILON)
-			item.set_button_disabled(TREE_BUTTONS, epsilon_index, true)
-			self.enable_create_symbol(item)
-
-# TODO: more locally near anchor manager
-func _on_item_edited(item=null):
-	if item == null:
-		item = self.current_tree.get_edited()
-
-	self.anchor_update(item)
-		
-func enable_create_symbol(item):
-	var index = item.get_button_by_id(TREE_BUTTONS, BUTTON_CREATE_SYMBOL)
-	
-	if index == -1:
-		item.add_button(TREE_BUTTONS, self.shape_icon, BUTTON_CREATE_SYMBOL, false, \"Create a new symbol with equal topology\")
-
-func disable_create_symbol(item):
-	var index = item.get_button_by_id(TREE_BUTTONS, BUTTON_CREATE_SYMBOL)
-	
-	if index != -1:
-		item.erase_button(TREE_BUTTONS, index)
-
-func _on_symbol_create(symbol):
-	for tree in self.trees:
-		self.tree_symbols[tree][symbol] = []
-
-func _on_symbol_delete(symbol):
-	for tree in self.trees:
-		var rule = self.tree_to_rule[tree]
-		var items = self.tree_symbols[tree][symbol]
-		
-		for item in items:
-			self._remove_anchor(rule, item, symbol)
-			item.set_text(TREE_SYMBOL, \"\")
-		
-		self.tree_symbols[tree].erase(symbol)
-
-func _on_symbol_rename(symbol, new_name):
-	for tree in self.trees:
-		var items = self.tree_symbols[tree][symbol]
-		
-		for item in items:
-			item.set_text(TREE_SYMBOL, new_name)
-			
-func is_visible(item):
-	var tm = item.get_metadata(TREE_META)
-	return !tm.epsilon and tm.hidden == VIS_VISIBLE
 "
 
 [sub_resource type="GDScript" id="GDScript_hr8ly"]
@@ -1061,44 +569,8 @@ var rng = RandomNumberGenerator.new()
 @onready var compile_button = %RuleOpt/Compile/CompileButton
 @onready var global_cut = %ToolOpt/FaceCutOpt/GlobalCut
 
-static func _create_face_instances(poly):
-	var mesh_instances = poly.get_face_objects()
-	
-	for mesh_instance in mesh_instances:
-		# Add collision
-		var mesh_area = Area3D.new()
-		var mesh_colshape = CollisionShape3D.new()
-		var colshape = ConcavePolygonShape3D.new()
-		
-		var polygons = mesh_instance.mesh.get_faces()
-		colshape.set_faces(polygons)
-		mesh_colshape.set_shape(colshape)
-		
-		# Set up the hierarchy
-		mesh_area.add_child(mesh_colshape)
-		mesh_instance.add_child(mesh_area)
-		
-		# Name the mesh area
-		mesh_area.name = \"Area3D\"
-		mesh_colshape.name = \"Colshape\"
-		
-		# Set needed attributes
-		mesh_area.input_ray_pickable = true
-		
-	return mesh_instances
-
-func _mount_poly(poly):
-	var mesh_instances = _create_face_instances(poly)
-	
-	for mesh_instance in mesh_instances:
-		mesh_instance.create_cut.connect(self._on_create_cut)
-		
-	return mesh_instances
-
 func poly_to_meshes(poly):
-	var mesh_instances = self._mount_poly(poly)
-	var col = Color(self.rng.randf_range(0.5, 0.9), self.rng.randf_range(0.5, 0.9), self.rng.randf_range(0.5, 0.9), 1.0)
-	%RuleManager.set_meshes(poly, mesh_instances, col)
+	var mesh_instances = %RuleManager.add_meshes(poly)
 	
 func draw_rule():
 	if %RuleManager.current_rule != null:
@@ -1129,6 +601,7 @@ func _ready():
 	
 	%RuleManager.rule_changed.connect(self._on_rule_change)
 	%RuleManager.symbol_displayed.connect(self._on_symbol_display)
+	%RuleManager.cut_created.connect(self._on_create_cut)
 	
 	$Cursors.create_cut.connect(self._on_cut_complete)
 	
@@ -1276,40 +749,53 @@ shading_mode = 2
 specular_mode = 2
 albedo_color = Color(1, 0, 0, 1)
 
-[sub_resource type="GDScript" id="GDScript_cwybh"]
-script/source = "extends Node3D
-
-
-# Called when the node enters the scene tree for the first time.
-func _ready():
-	self.visible = false
-"
-
-[sub_resource type="BoxMesh" id="BoxMesh_vx7xy"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_04y3e"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_uwenv"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_awaj5"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_rhuu1"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_mtwdu"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_o4cur"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_icqac"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_olybk"]
-
 [sub_resource type="GDScript" id="GDScript_r1mpe"]
 resource_name = "AddSymbol"
 script/source = "extends Button
 
 const symbol_rules = preload(\"res://SymbolRules.tscn\")
+var syms = {}
+
+func save():
+	print(\" \")
+	var syms_named = {}
+	for sym in syms:
+		var d = syms[sym]
+		var poly = d[0]
+		var obj = d[1]
+		print(poly, \" \", obj)
+		var poly_save = poly.save()
+		var obj_save = obj.save()
+		
+		syms_named[sym.text] = [poly_save, obj_save]
+		
+	return [syms_named]
+		
+func l(data):
+	# Remove old
+	print(syms.keys())
+	for sym in syms.keys().duplicate():
+		syms[sym][1].delete_symbol()
+		
+	self.syms = {}
+	
+	# Add new
+	for sym_text in data[0]:
+		var d = data[0][sym_text]
+		var poly_save = d[0]
+		var obj_save = d[1]
+	
+		var poly = Polyhedron.from_data(poly_save)
+		
+		# Create symbol
+		var obj = await self.create_symbol(poly, sym_text)
+		obj.l(obj_save)
+		
+	pass
 
 func create_symbol(poly, _name=null):
+	%ToolOpt.end_mode()
+	
 	poly = poly.create_copy()
 	poly.center_scale(0.8)
 	
@@ -1336,6 +822,8 @@ func create_symbol(poly, _name=null):
 	new_symbol_rules.symbol_selected.connect(_on_symbol_select)
 	new_symbol_rules.symbol_deleted.connect(_on_symbol_delete)
 	
+	self.syms[sym] = [poly, new_symbol_rules]
+	
 	# Change the ordering of the elements
 	var instance_i = new_symbol_rules.get_index()
 	%SymbolRules.move_child(new_symbol_rules, instance_i - 1)
@@ -1355,6 +843,7 @@ func _pressed():
 	await self.create_symbol(cube)
 
 func _on_rule_create(symbol, index):
+	%ToolOpt.end_mode()
 	%RuleManager.create_rule(symbol, index)
 	
 func _on_rule_select(symbol, index):
@@ -1370,6 +859,8 @@ func _on_symbol_select(symbol):
 	%RuleManager.set_to_symbol(symbol)
 	
 func _on_symbol_delete(symbol):
+	print(\"DEL \", symbol.text)
+	self.syms.erase(symbol)
 	%Symbols.delete_symbol(symbol)
 	
 func _ready():
@@ -1436,6 +927,7 @@ custom_minimum_size = Vector2(1024, 600)
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
+script = ExtResource("1_43r8s")
 
 [node name="Left" type="VSplitContainer" parent="HSplitContainer"]
 unique_name_in_owner = true
@@ -1560,14 +1052,15 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_k66y5")
 
-[node name="SubViewportContainer" type="SubViewportContainer" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG"]
+[node name="SVC" type="SubViewportContainer" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme = SubResource("Theme_wq57k")
 stretch = true
 
-[node name="SubViewport" type="SubViewport" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer"]
+[node name="SV" type="SubViewport" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC"]
 own_world_3d = true
 world_3d = SubResource("World3D_xikwn")
 transparent_bg = true
@@ -1577,109 +1070,69 @@ physics_object_picking = true
 size = Vector2i(1152, 356)
 render_target_update_mode = 4
 
-[node name="Cam" type="Camera3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport"]
+[node name="Cam" type="Camera3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV"]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.54398)
 environment = SubResource("1")
 
-[node name="Root" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport"]
+[node name="Root" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV"]
 script = ExtResource("1")
 
-[node name="RuleManager" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root"]
+[node name="RuleManager" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root"]
 unique_name_in_owner = true
 script = SubResource("GDScript_cq0kr")
 
-[node name="TreeManager" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/RuleManager"]
-script = SubResource("GDScript_xx60u")
+[node name="TreeManager" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root/RuleManager"]
+script = ExtResource("4_dt0xj")
 
-[node name="Tester" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root"]
+[node name="Tester" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root"]
 unique_name_in_owner = true
 visible = false
 script = SubResource("GDScript_hr8ly")
 
-[node name="Editor" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root"]
+[node name="Editor" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root"]
 unique_name_in_owner = true
 script = SubResource("GDScript_besah")
 
-[node name="Selector" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor"]
+[node name="Selector" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root/Editor"]
 script = ExtResource("4")
 
-[node name="AnchorManager" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor"]
+[node name="AnchorManager" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root/Editor"]
 script = ExtResource("5")
 
-[node name="Meshes" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor"]
+[node name="Meshes" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root/Editor"]
 
-[node name="Cursors" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor"]
+[node name="Cursors" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root/Editor"]
 script = ExtResource("6_miobu")
 
-[node name="Cursor1" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor/Cursors"]
+[node name="Cursor1" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root/Editor/Cursors"]
 transform = Transform3D(0.07, 0, 0, 0, 0.07, 0, 0, 0, 0.07, 0, 0, 0)
 visible = false
 mesh = SubResource("SphereMesh_4nkvx")
 skeleton = NodePath("../..")
 surface_material_override/0 = SubResource("StandardMaterial3D_aipi0")
 
-[node name="Cursor2" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor/Cursors"]
+[node name="Cursor2" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root/Editor/Cursors"]
 transform = Transform3D(0.07, 0, 0, 0, 0.07, 0, 0, 0, 0.07, 0, 0, 0)
 visible = false
 mesh = SubResource("SphereMesh_4nkvx")
 skeleton = NodePath("../..")
 surface_material_override/0 = SubResource("StandardMaterial3D_aipi0")
 
-[node name="Cursor3" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root/Editor/Cursors"]
+[node name="Cursor3" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root/Editor/Cursors"]
 transform = Transform3D(0.07, 0, 0, 0, 0.07, 0, 0, 0, 0.07, 0, 0, 0)
 visible = false
 mesh = SubResource("SphereMesh_4nkvx")
 skeleton = NodePath("../..")
 surface_material_override/0 = SubResource("StandardMaterial3D_aipi0")
 
-[node name="Symbols" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Root"]
+[node name="Symbols" type="Node" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV/Root"]
 unique_name_in_owner = true
 script = ExtResource("6_j4m57")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport"]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SVC/SV"]
 transform = Transform3D(0.656559, 0, 0.754274, 0, 1, 0, -0.754274, 0, 0.656559, 1.85974, 0, 0.65363)
 light_energy = 0.3
-
-[node name="Cache" type="Node3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport"]
-script = SubResource("GDScript_cwybh")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
-mesh = SubResource("BoxMesh_vx7xy")
-skeleton = NodePath("../..")
-surface_material_override/0 = ExtResource("7_nqmjk")
-
-[node name="MeshInstance3D2" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
-mesh = SubResource("BoxMesh_04y3e")
-surface_material_override/0 = ExtResource("8_6gll8")
-
-[node name="MeshInstance3D3" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
-mesh = SubResource("BoxMesh_uwenv")
-surface_material_override/0 = ExtResource("9_rul7m")
-
-[node name="MeshInstance3D4" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
-mesh = SubResource("BoxMesh_awaj5")
-surface_material_override/0 = ExtResource("10_cvqnu")
-
-[node name="MeshInstance3D5" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
-mesh = SubResource("BoxMesh_rhuu1")
-surface_material_override/0 = ExtResource("11_w775q")
-
-[node name="MeshInstance3D6" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
-mesh = SubResource("BoxMesh_mtwdu")
-surface_material_override/0 = ExtResource("12_euwlv")
-
-[node name="MeshInstance3D7" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
-mesh = SubResource("BoxMesh_o4cur")
-surface_material_override/0 = ExtResource("13_p0oya")
-
-[node name="MeshInstance3D8" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
-mesh = SubResource("BoxMesh_icqac")
-surface_material_override/0 = ExtResource("14_ktuy1")
-
-[node name="MeshInstance3D9" type="MeshInstance3D" parent="HSplitContainer/Left/RuleEditor/ToolsView/BG/SubViewportContainer/SubViewport/Cache"]
-mesh = SubResource("BoxMesh_olybk")
-surface_material_override/0 = ExtResource("15_mkbwi")
 
 [node name="ExplorerWindow" type="VSplitContainer" parent="HSplitContainer/Left"]
 layout_mode = 2

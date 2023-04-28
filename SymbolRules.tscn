@@ -24,6 +24,26 @@ var rules = {}
 
 @onready var new_rule = $Flow/NewRuleContainer/NewRule
 
+func save():
+	var data = [$Flow/SymbolContainer.save()]
+	for rule_i in self.rules:
+		data.append(self.rules[rule_i].save())
+		
+	return data
+	
+func l(data):
+	# Remove old data
+	for rule in rules.duplicate():
+		rule.delete()
+	
+	# Load new symbol
+	$Flow/SymbolContainer.l(data[0])
+	
+	# Create new rules
+	for i in data.size() - 1:
+		var rule_data = data[i + 1]
+		var rule = self.create_rule(rule_data[0], rule_data[1])
+
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	if symbol != null:
@@ -75,8 +95,8 @@ func display_meshes(index, meshes):
 func display_symbol_meshes(meshes):
 	$Flow/SymbolContainer.display_meshes(meshes)
 	
-func create_rule():
-	self.new_rule.create_rule()
+func create_rule(index=null, _name=\"\"):
+	self.new_rule.create_rule(index, _name)
 	
 func delete_symbol():
 	self._on_symbol_delete(-1)
@@ -95,16 +115,22 @@ var rule_index_counter = 0
 
 @onready var flow = $\"../..\"
 
-# Persistant:
-# * rule_index_counter
-
 func _pressed():
 	self.create_rule()
 	
-func create_rule():
+func create_rule(index=null, _name=\"\"):
+	var rule_index = rule_index_counter
+	if index != null:
+		if index > rule_index_counter:
+			rule_index_counter = index
+			
+		rule_index = index
+		
+	else:
+		self.rule_index_counter += 1
+	
 	var instance = rulesel_scene.instantiate()
-	instance.index = self.rule_index_counter
-	self.rule_index_counter += 1
+	instance.index = rule_index
 	
 	self.rule_created.emit(instance.index, instance)
 	
@@ -117,7 +143,11 @@ func create_rule():
 	instance.selected.connect(_on_rule_selected)
 	instance.deleted.connect(_on_rule_deleted)
 	
-	instance.rename(\"R%d\" % instance.index)
+	if _name == \"\":
+		instance.rename(\"R%d\" % instance.index)
+	
+	else:
+		instance.rename(_name)
 
 func _on_rule_selected(index):
 	self.rule_selected.emit(index)
