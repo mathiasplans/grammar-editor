@@ -169,7 +169,7 @@ func set_tree(tree):
 		self.current_tree = tree
 		%TreeParent.add_child(self.current_tree)
 	
-func create_child_item(cut, parent_poly, cut_planes, text, sym=null):
+func create_child_item(cut, parent_poly, text, sym=null):
 	var parent_treeitem = %RuleManager.get_treeitem(parent_poly)
 	
 	var poly = cut[0]

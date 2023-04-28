@@ -27,9 +27,6 @@ const face_obj_scene = preload("res://face.tscn")
 # * original
 
 func save():
-	var sym = ""
-	if self.symbol != null:
-		sym = self.symbol.text
 	return [self.vertices, self.directed, self.faces, self.original]
 	
 func l(data):
@@ -686,7 +683,6 @@ func _get_anchor_order(origin, a):
 		var fi = item[0]
 		var start = item[1]
 		var last_vert = start
-		var last_last_vert = last_vert # Danger
 		var vert = self.face_next[fi][last_vert]
 		
 		# Add the first vertex
@@ -703,8 +699,7 @@ func _get_anchor_order(origin, a):
 				var left_face = self.directed_to_face[[vert, last_vert]]
 				if not faces_done.has(left_face):
 					wm.push_back([left_face, vert])
-				
-			last_last_vert = last_vert
+					
 			last_vert = vert
 			vert = self.face_next[fi][last_vert]
 			

@@ -69,7 +69,6 @@ func l(data):
 	TreeManager.get_leafpolys(self.leaf_polys, self.split_root)
 	
 	self.colors = {}
-	var rng = RandomNumberGenerator.new()
 	for poly in self.poly_to_treeitem:
 		if self.leaf_polys.has(poly):
 			self.add_meshes(poly)

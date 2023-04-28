@@ -270,8 +270,8 @@ func add_rotation(poly, rotation):
 	$TreeManager.add_rotation(poly, rotation)
 	self._edited()
 	
-func add_branch(cut, parent_treeitem, cut_planes, text, sym):
-	$TreeManager.create_child_item(cut, parent_treeitem, cut_planes, text, sym)
+func add_branch(cut, parent_treeitem, text, sym):
+	$TreeManager.create_child_item(cut, parent_treeitem, text, sym)
 	self._edited()
 	
 func compile(rule=self.current_rule):
@@ -583,7 +583,7 @@ var rng = RandomNumberGenerator.new()
 @onready var global_cut = %ToolOpt/FaceCutOpt/GlobalCut
 
 func poly_to_meshes(poly):
-	var mesh_instances = %RuleManager.add_meshes(poly)
+	%RuleManager.add_meshes(poly)
 	
 func draw_rule():
 	if %RuleManager.current_rule != null:
@@ -636,9 +636,9 @@ func _on_create_cut(cut_plane):
 	# Subscribe to the cut completion callback
 	cut_plane.cut_complete.connect(_on_cut_complete)
 
-func _add_child_polyhedron(cut, parent_treeitem, cut_planes, text, sym=null):
+func _add_child_polyhedron(cut, parent_treeitem, text, sym=null):
 	# Update the tree
-	%RuleManager.add_branch(cut, parent_treeitem, cut_planes, text, sym)
+	%RuleManager.add_branch(cut, parent_treeitem, text, sym)
 	
 	# Add new meshes
 	var new_poly = cut[0]
@@ -672,7 +672,7 @@ func _cut_poly(cut_planes, poly):
 
 	# Handle new polyhedrons
 	for cut in cutdata:
-		self._add_child_polyhedron(cut, poly, cut_planes, \"B\")
+		self._add_child_polyhedron(cut, poly, \"B\")
 
 # On the cut completion, cut the polygon
 func _on_cut_complete(cut_planes, _poly):

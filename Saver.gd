@@ -88,8 +88,8 @@ func save(newpath=false):
 		var file = FileAccess.open(temp_path, FileAccess.READ_WRITE)
 		file.store_var(saved)
 		file.seek(0)
-		var len = file.get_length()
-		var packed = file.get_buffer(len)
+		var _len = file.get_length()
+		var packed = file.get_buffer(_len)
 		
 		JavaScriptBridge.download_buffer(packed, "save.bin")
 		
@@ -155,10 +155,10 @@ func _on_file_selected(path):
 	
 func _file_load_cb_fun(args):
 	var jso = args[0]
-	var len = jso.byteLength
+	var _len = jso.byteLength
 	var pba = PackedByteArray()
 	
-	for i in len:
+	for i in _len:
 		pba.append(jso[i])
 		
 	self.upload_data = pba

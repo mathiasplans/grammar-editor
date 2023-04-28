@@ -1,27 +1,5 @@
 extends Node
 class_name Geom
-
-static func create_quad(corners):
-	var verts = corners
-	var normal = Normals.calculate_normal(corners)
-	var normals = [normal, normal, normal, normal]
-	var uvs = [Vector2(0.0, 0.0), Vector2(1.0, 0.0), Vector2(1.0, 1.0), Vector2(0.0, 1.0)]
-	var colors = [Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE]
-	var indices = [0, 1, 2, 2, 3, 0]
-	
-	var arrays = []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array(verts)
-	arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array(normals)
-	arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array(uvs)
-	arrays[Mesh.ARRAY_COLOR] = PackedColorArray(colors)
-	arrays[Mesh.ARRAY_INDEX] = PackedInt32Array(indices)
-	
-	# Turn the quad into a mesh
-	var face = ArrayMesh.new()
-	face.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	
-	return face
 		
 static func area_center(mesh):
 	var centers = []
@@ -118,12 +96,6 @@ static func brep_to_meshes_cont(points, faces):
 	var new_points = points.duplicate()
 	
 	for face in faces:
-		var normal = calculate_normal_from_points(
-			points[face[0]],
-			points[face[1]],
-			points[face[2]]
-		)
-
 		var tangents = []
 		for i in face.size():
 			var next_i = (i + 1) % face.size()
@@ -148,9 +120,6 @@ static func brep_to_meshes_cont(points, faces):
 			var tan2 = tangents[i]
 			
 			var sin_phi = tan1.cross(tan2).length()
-			
-			var tan1_normal = -tan1.cross(normal)
-			var tan2_normal = tan2.cross(normal)
 
 			var contour_point = point + contour_width * (tan1 + tan2) / sin_phi
 			

@@ -85,8 +85,8 @@ func _ready():
 	
 	self.add_child(self.outline)
 	
-func set_mat(mat):
-	self.mat = mat
+func set_mat(_mat):
+	self.mat = _mat
 	self.material_override = self.get_color()
 	
 func disable_collision():
