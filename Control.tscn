@@ -376,6 +376,7 @@ resource_name = "Tester"
 script/source = "extends Node3D
 
 @onready var apply_rule = %ToolOpt/TestOpt/ApplyRule
+@onready var export_button = %ToolOpt/TestOpt/Export
 
 var _shapes = []
 var _terminals = []
@@ -386,6 +387,7 @@ var _initial_shape
 
 func _ready():
 	self.apply_rule.button_down.connect(self._on_apply_rule_press)
+	self.export_button.button_down.connect(self._on_export)
 	
 func _input(event):
 	if self.active():
@@ -557,6 +559,17 @@ func get_corners():
 		verts.append(gt * vert)
 		
 	return verts
+	
+func _on_export():
+	var meshes = []
+	
+	for mi in self._shape_meshes:
+		meshes.append(mi.mesh)
+		
+	for mi in self._terminal_meshes:
+		meshes.append(mi.mesh)
+
+	%Persistance.save_meshes_as_stl(meshes)
 "
 
 [sub_resource type="GDScript" id="GDScript_besah"]
@@ -918,16 +931,17 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 
-[node name="Pops" type="Node" parent="."]
+[node name="Persistance" type="Node" parent="."]
 unique_name_in_owner = true
+script = ExtResource("1_43r8s")
 
-[node name="SaveFile" type="FileDialog" parent="Pops"]
+[node name="SaveFile" type="FileDialog" parent="Persistance"]
 position = Vector2i(200, 150)
 size = Vector2i(700, 400)
 ok_button_text = "Save"
 access = 2
 
-[node name="LoadFile" type="FileDialog" parent="Pops"]
+[node name="LoadFile" type="FileDialog" parent="Persistance"]
 title = "Open a File"
 position = Vector2i(200, 150)
 size = Vector2i(700, 400)
@@ -940,7 +954,6 @@ custom_minimum_size = Vector2(1024, 600)
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = ExtResource("1_43r8s")
 
 [node name="Left" type="VSplitContainer" parent="HSplitContainer"]
 unique_name_in_owner = true
@@ -1003,6 +1016,10 @@ layout_mode = 2
 [node name="ApplyRule" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolOpt/TestOpt"]
 layout_mode = 2
 text = "New Gen"
+
+[node name="Export" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolOpt/TestOpt"]
+layout_mode = 2
+text = "Export"
 
 [node name="PrismCutOpt" type="GridContainer" parent="HSplitContainer/Left/RuleEditor/ToolOpt"]
 visible = false

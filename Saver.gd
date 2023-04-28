@@ -1,12 +1,76 @@
-extends HSplitContainer
+extends Node
 
-var temp_path = "user://tempsave"
+var temp_path = "user://temp"
 var user_path = null
+var save_path = null
 var upload_data = null
 var proceed = false
 
 signal finished_operation
 
+enum UP_AXIS {
+	X_UP, Y_UP, Z_UP,
+	X_DOWN, Y_DOWN, Z_DOWN
+}
+
+static func save_file(path, contents):
+	if OS.has_feature('web'):		
+		JavaScriptBridge.download_buffer(contents, path)
+		
+	else:
+		var file = FileAccess.open(path, FileAccess.WRITE)
+		file.store_buffer(contents)
+		
+func update_user_path():
+	$SaveFile.popup()
+	await self.finished_operation
+	return self.proceed
+
+# https://godotengine.org/qa/129688/how-to-export-stl-from-gdscript
+func save_meshes_as_stl(meshes):
+	# Get the path
+	var proc = await self.update_user_path()
+	if not proc:
+		return
+		
+	var path = self.user_path
+	
+	# Convert to STL format
+	var mesh_name = "__mesh_name"
+	var stl = ""
+	stl += "solid " + mesh_name + "\n"
+	
+	const _up_axis = UP_AXIS.Z_UP
+	var basis:Basis = Basis.IDENTITY
+	match _up_axis:
+		UP_AXIS.X_UP:
+			basis = Quaternion(Vector3(0,0,1),PI*0.5)
+		UP_AXIS.X_DOWN:
+			basis = Quaternion(Vector3(0,0,1),PI*-0.5)
+		UP_AXIS.Y_DOWN:
+			basis = Quaternion(Vector3(1,0,0),PI)
+		UP_AXIS.Z_UP:
+			basis = Quaternion(Vector3(1,0,0),PI*0.5)
+		UP_AXIS.Z_DOWN:
+			basis = Quaternion(Vector3(1,0,0),PI*-0.5)
+	
+	for mesh in meshes:
+		var faces = mesh.get_faces()
+		var v3:Vector3
+		for i in range(0,faces.size(),3):
+			stl += "\tfacet\n"
+			stl += "\t\touter loop\n"
+			for j in range(0,3):
+				v3 = faces[i+j]
+				v3 = basis * v3
+				stl += "\t\t\tvertex " + str(v3.x) + " " + str(v3.y) + " " + str(v3.z) + "\n"
+			stl += "\t\tendloop\n"
+			stl += "\tendfacet\n"
+			
+		stl += "endsolid " + mesh_name + "\n"
+		
+	save_file(path, stl.to_utf8_buffer())
+	
 func save(newpath=false):
 	# AddSymbol save
 	var add_symbol_save = %AddSymbol.save()
@@ -30,16 +94,15 @@ func save(newpath=false):
 		JavaScriptBridge.download_buffer(packed, "save.bin")
 		
 	else:
-		var need_a_newpath = user_path == null or newpath
+		var need_a_newpath = save_path == null or newpath
 		var proc = true
 		if need_a_newpath:
-			%Pops/SaveFile.popup()
-			await self.finished_operation
-			proc = self.proceed
+			proc = await self.update_user_path()
 			
 		# Only do if self.proceed was not false
 		if proc:
-			var file = FileAccess.open(user_path, FileAccess.WRITE)
+			self.save_path = self.user_path
+			var file = FileAccess.open(self.save_path, FileAccess.WRITE)
 			file.store_var(saved)
 
 func l():
@@ -57,7 +120,7 @@ func l():
 		saved = file.get_var()
 		
 	else:
-		%Pops/LoadFile.popup()
+		$LoadFile.popup()
 		await self.finished_operation
 		
 		if self.proceed:
@@ -115,11 +178,11 @@ func _ready():
 		window.setup_file_upload(file_load_cb)
 		
 	else:
-		%Pops/SaveFile.file_selected.connect(self._on_file_selected)
-		%Pops/LoadFile.file_selected.connect(self._on_file_selected)
+		$SaveFile.file_selected.connect(self._on_file_selected)
+		$LoadFile.file_selected.connect(self._on_file_selected)
 		
-		%Pops/SaveFile.canceled.connect(self._on_cancle)
-		%Pops/LoadFile.canceled.connect(self._on_cancle)
+		$SaveFile.canceled.connect(self._on_cancle)
+		$LoadFile.canceled.connect(self._on_cancle)
 		
 func _input(event):
 	if event is InputEventKey:
