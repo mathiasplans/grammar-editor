@@ -757,13 +757,11 @@ const symbol_rules = preload(\"res://SymbolRules.tscn\")
 var syms = {}
 
 func save():
-	print(\" \")
 	var syms_named = {}
 	for sym in syms:
 		var d = syms[sym]
 		var poly = d[0]
 		var obj = d[1]
-		print(poly, \" \", obj)
 		var poly_save = poly.save()
 		var obj_save = obj.save()
 		
@@ -773,7 +771,6 @@ func save():
 		
 func l(data):
 	# Remove old
-	print(syms.keys())
 	for sym in syms.keys().duplicate():
 		syms[sym][1].delete_symbol()
 		
@@ -859,7 +856,6 @@ func _on_symbol_select(symbol):
 	%RuleManager.set_to_symbol(symbol)
 	
 func _on_symbol_delete(symbol):
-	print(\"DEL \", symbol.text)
 	self.syms.erase(symbol)
 	%Symbols.delete_symbol(symbol)
 	
@@ -921,6 +917,23 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
+
+[node name="Pops" type="Node" parent="."]
+unique_name_in_owner = true
+
+[node name="SaveFile" type="FileDialog" parent="Pops"]
+position = Vector2i(200, 150)
+size = Vector2i(700, 400)
+ok_button_text = "Save"
+access = 2
+
+[node name="LoadFile" type="FileDialog" parent="Pops"]
+title = "Open a File"
+position = Vector2i(200, 150)
+size = Vector2i(700, 400)
+ok_button_text = "Open"
+file_mode = 0
+access = 2
 
 [node name="HSplitContainer" type="HSplitContainer" parent="."]
 custom_minimum_size = Vector2(1024, 600)
