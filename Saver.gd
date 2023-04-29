@@ -13,8 +13,8 @@ enum UP_AXIS {
 	X_DOWN, Y_DOWN, Z_DOWN
 }
 
-static func save_file(path, contents):
-	if OS.has_feature('web'):		
+static func save_file(path, contents: PackedByteArray):
+	if OS.has_feature('web'):
 		JavaScriptBridge.download_buffer(contents, path)
 		
 	else:
@@ -25,15 +25,21 @@ func update_user_path():
 	$SaveFile.popup()
 	await self.finished_operation
 	return self.proceed
+	
+func get_new_path():
+	# Get the path
+	var proc = await self.update_user_path()
+	if not proc:
+		return null
+		
+	return self.user_path
 
 # https://godotengine.org/qa/129688/how-to-export-stl-from-gdscript
 func save_meshes_as_stl(meshes):
 	# Get the path
-	var proc = await self.update_user_path()
-	if not proc:
+	var path = await self.get_new_path()
+	if path == null:
 		return
-		
-	var path = self.user_path
 	
 	# Convert to STL format
 	var mesh_name = "__mesh_name"
@@ -70,6 +76,16 @@ func save_meshes_as_stl(meshes):
 		stl += "endsolid " + mesh_name + "\n"
 		
 	save_file(path, stl.to_utf8_buffer())
+	
+func save_serialized_grammar():
+	# Get the path
+	var path = await self.get_new_path()
+	if path == null:
+		return
+		
+	var sg = %Symbols.serialize_grammar()
+		
+	save_file(path, sg)
 	
 func save(newpath=false):
 	# AddSymbol save
@@ -192,3 +208,6 @@ func _input(event):
 				
 			if event.keycode == KEY_L and event.ctrl_pressed:
 				self.l()
+				
+			if event.keycode == KEY_B and event.ctrl_pressed:
+				self.save_serialized_grammar()

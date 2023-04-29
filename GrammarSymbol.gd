@@ -24,6 +24,33 @@ func l(data):
 	self.faces = data[3]
 	self.terminal = data[4]
 	
+func serialize():
+	# Sizes
+	var data = PackedByteArray()
+	data.append(self.nr_of_vertices)
+	data.append(text.length())
+	data.append(self.rules.size())
+	data.append(self.faces.size())
+	for face in self.faces:
+		data.append(face.size())
+		
+	# Faces
+	for face in self.faces:
+		for vi in face:
+			data.append(vi)
+
+	# Symbol metadata
+	data.append(self.terminal)
+	data.append_array(self.text.to_utf8_buffer())
+	
+	# Pad
+	var new_size = snappedi(data.size() + 2, 4)
+	
+	if new_size != data.size():
+		data.resize(new_size)
+	
+	return data
+	
 static func from_data(data):
 	var new_sym = GrammarSymbol.new(data[2], data[3], data[4])
 	new_sym.id = data[0]

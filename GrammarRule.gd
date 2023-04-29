@@ -4,6 +4,7 @@ class_name GrammarRule
 class VirtualVertex:
 	var from
 	var to
+	var type
 	
 	enum {FIRST, INTERPOLATE}
 	
@@ -14,11 +15,15 @@ class VirtualVertex:
 	func create_vertex(_vertex_array):
 		pass
 		
+	func pack():
+		return self.from << 18 | self.to << 4 | self.type
+		
 class FirstVertex:
 	extends VirtualVertex
 	
 	func _init(_from):
 		super(_from, -1)
+		self.type = VirtualVertex.FIRST
 		pass
 		
 	func create_vertex(vertex_array):
@@ -31,6 +36,7 @@ class InterpolateVertex:
 	func _init(_from, _to, _coef):
 		super(_from, _to)
 		self.coef = _coef
+		self.type = VirtualVertex.INTERPOLATE
 		
 	func create_vertex(vertex_array):
 		var other_coef = 1 - self.coef
@@ -43,6 +49,56 @@ var product_symbols = []
 var product_vertices = []
 
 var index = -1
+
+func serialize(symbol_id):
+	var data = PackedByteArray()
+	
+	var verts_size = 0
+	for verts in self.product_vertices:
+		var s = verts.size()
+		verts_size += s
+		
+	var buf_size = 4 + 4 * self.virtual_vertices.size() \
+					+ 2 * self.product_vertices.size() \
+					+ 2 * self.product_symbols.size() \
+					+ 2 * verts_size
+					
+	# padding
+	buf_size = snappedi(buf_size + 2, 4)
+	
+	data.resize(buf_size)
+	
+	# Sizes
+	var i = 0
+	data.encode_u16(i, self.virtual_vertices.size())
+	i += 2
+	data.encode_u8(i, self.product_symbols.size())
+	i += 1
+	data.encode_u8(i, self.product_vertices.size())
+	i += 1
+	
+	# virtual vertices
+	for vv in self.virtual_vertices:
+		data.encode_u32(i, vv.pack())
+		i += 4
+		
+	# product vertex sizes
+	for verts in self.product_vertices:
+		data.encode_u16(i, verts.size())
+		i += 2
+		
+	# Product symbols
+	for ps in self.product_symbols:
+		data.encode_u16(i, symbol_id[ps])
+		i += 2
+	
+	# Product vertives
+	for verts in self.product_vertices:
+		for vertex in verts:
+			data.encode_u16(i, vertex)
+			i += 2
+			
+	return data
 
 func _init(_index, _symbol):
 	self.index = _index

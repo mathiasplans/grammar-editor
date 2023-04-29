@@ -159,3 +159,45 @@ func get_reference_anchor(symbol):
 	new_mesh_instance.material_override = refanch.material_override
 	
 	return new_mesh_instance
+	
+func serialize_grammar():
+	var data = PackedByteArray()
+	var symbol_map = {}
+	var i = 0
+	
+	var cursor = 0
+	data.resize(4)
+	data.encode_u32(cursor, self.symbols.size())
+	cursor += 4
+	
+	# Encode symbols
+	for sym_text in self.symbols:
+		var symbol = self.symbols[sym_text]
+		var packed_symbol = symbol.serialize()
+		var ps_size = packed_symbol.size()
+		
+		data.resize(data.size() + 4)
+		data.encode_u32(cursor, ps_size)
+		data.append_array(packed_symbol)
+		
+		cursor += 4 + ps_size
+		
+		symbol_map[symbol] = i
+		i += 1
+
+	# Encode rules
+	for sym_text in self.symbols:
+		var symbol = self.symbols[sym_text]
+		for rule_index in symbol.rules:
+			var rule = symbol.rules[rule_index]
+			
+			var packed_rule = rule.serialize(symbol_map)
+			var pr_size = packed_rule.size()
+			
+			data.resize(data.size() + 4)
+			data.encode_u32(cursor, pr_size)
+			data.append_array(packed_rule)
+			
+			cursor += 4 + pr_size
+			
+	return data
