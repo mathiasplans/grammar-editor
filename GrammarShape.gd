@@ -13,6 +13,24 @@ func save():
 	
 static func from_data(data, symbols):
 	return GrammarShape.new(symbols.get_symbol[data[0]], data[1])
+	
+func serialize():
+	var data = PackedByteArray()
+	
+	var s = 4 + vertices.size() * 3 * 4
+	s = snappedi(s + 2, 4)
+	data.resize(s)
+	
+	var i = 0
+	data.encode_u32(i, data.size())
+	i += 4
+	
+	for vertex in self.vertices:
+		for j in 3:
+			data.encode_float(i, vertex[j])
+			i += 4
+			
+	return data
 
 func _init(_symbol, _vertices):
 	self.symbol = _symbol
