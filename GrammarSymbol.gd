@@ -27,24 +27,31 @@ func l(data):
 func serialize():
 	# Sizes
 	var data = PackedByteArray()
-	data.append(self.nr_of_vertices)
+	data.resize(2)
+	data.encode_u16(0, self.nr_of_vertices)
 	data.append(text.length())
 	data.append(self.rules.size())
 	data.append(self.faces.size())
+	data.append(self.terminal)
+	
+	var total_size = 0
 	for face in self.faces:
+		total_size += face.size()
 		data.append(face.size())
 		
 	# Faces
+	var i = data.size()
+	i = snappedi(i + 1.5, 4)
+	data.resize(i + total_size * 2)
 	for face in self.faces:
 		for vi in face:
-			data.append(vi)
-
-	# Symbol metadata
-	data.append(self.terminal)
+			data.encode_u16(i, vi)
+			i += 2
+	
 	data.append_array(self.text.to_utf8_buffer())
 	
 	# Pad
-	var new_size = snappedi(data.size() + 2, 4)
+	var new_size = snappedi(data.size() + 5.5, 4)
 	
 	if new_size != data.size():
 		data.resize(new_size)

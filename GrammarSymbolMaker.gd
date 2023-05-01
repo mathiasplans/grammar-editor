@@ -184,6 +184,20 @@ func serialize_grammar():
 		
 		symbol_map[symbol] = i
 		i += 1
+		
+	# Encode shapes
+	for sym_text in self.symbols:
+		var symbol = self.symbols[sym_text]
+		var def_shape = self.default_shape[symbol]
+		
+		var packed_shape = def_shape.serialize()
+		var ps_size = packed_shape.size()
+		
+		data.resize(data.size() + 4)
+		data.encode_u32(cursor, ps_size)
+		data.append_array(packed_shape)
+		
+		cursor += 4 + ps_size
 
 	# Encode rules
 	for sym_text in self.symbols:

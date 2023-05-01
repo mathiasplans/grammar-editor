@@ -18,7 +18,7 @@ func serialize():
 	var data = PackedByteArray()
 	
 	var s = 4 + vertices.size() * 3 * 4
-	s = snappedi(s + 2, 4)
+	s = snappedi(s + 1.5, 4)
 	data.resize(s)
 	
 	var i = 0

@@ -16,7 +16,7 @@ class VirtualVertex:
 		pass
 		
 	func pack():
-		return self.from << 18 | self.to << 4 | self.type
+		return self.from | self.to << 16 | self.type << 32
 		
 class FirstVertex:
 	extends VirtualVertex
@@ -38,6 +38,15 @@ class InterpolateVertex:
 		self.coef = _coef
 		self.type = VirtualVertex.INTERPOLATE
 		
+	func pack():
+		var p = super.pack()
+		var b = p
+		var a = int(((1 << 28) - 1))
+		var val = int(((1 << 28) - 1) * self.coef)
+		p = p | int(((1 << 28) - 1) * self.coef) << 36
+		print("%f, %X, %X, %X, %X" % [self.coef, a, val, b, p])
+		return p
+		
 	func create_vertex(vertex_array):
 		var other_coef = 1 - self.coef
 		return vertex_array[self.from] * other_coef + vertex_array[self.to] * self.coef 
@@ -58,13 +67,13 @@ func serialize(symbol_id):
 		var s = verts.size()
 		verts_size += s
 		
-	var buf_size = 4 + 4 * self.virtual_vertices.size() \
+	var buf_size = 4 + 8 * self.virtual_vertices.size() \
 					+ 2 * self.product_vertices.size() \
 					+ 2 * self.product_symbols.size() \
 					+ 2 * verts_size
 					
 	# padding
-	buf_size = snappedi(buf_size + 2, 4)
+	buf_size = snappedi(buf_size + 1.5, 4)
 	
 	data.resize(buf_size)
 	
@@ -73,14 +82,12 @@ func serialize(symbol_id):
 	data.encode_u16(i, self.virtual_vertices.size())
 	i += 2
 	data.encode_u8(i, self.product_symbols.size())
-	i += 1
-	data.encode_u8(i, self.product_vertices.size())
-	i += 1
+	i += 2
 	
 	# virtual vertices
 	for vv in self.virtual_vertices:
-		data.encode_u32(i, vv.pack())
-		i += 4
+		data.encode_u64(i, vv.pack())
+		i += 8
 		
 	# product vertex sizes
 	for verts in self.product_vertices:
