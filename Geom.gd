@@ -89,7 +89,7 @@ static func brep_to_meshes(points, faces, uvs=null, st=null, color=Color(1, 1, 1
 		return meshes
 		
 	else:
-		return [null]
+		return [null]	
 		
 static func brep_to_meshes_cont(points, faces):
 	var meshes = []

@@ -314,8 +314,9 @@ func _on_tree_button(item, column, id, _mouse_button_index):
 			%Editor/Selector.select_clear()
 			var rule = %RuleManager.get_rule()
 			self._on_item_edited(item)
-			%AddSymbol.create_symbol(tm.poly, item.get_text(TREE_SYMBOL))
-			self.anchor_update(item, rule)
+			var sym_text = item.get_text(TREE_SYMBOL)
+			%AddSymbol.create_symbol(tm.poly, sym_text)
+			self.anchor_update(item, sym_text, rule)
 			
 
 func _on_tree_selected():

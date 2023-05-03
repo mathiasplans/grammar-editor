@@ -1,4 +1,6 @@
-extends Node
+@tool
+
+extends RefCounted
 class_name GrammarSymbol
 
 var id = -1
@@ -23,6 +25,42 @@ func l(data):
 	self.nr_of_vertices = data[2]
 	self.faces = data[3]
 	self.terminal = data[4]
+	
+func pack():
+	var sym_data = self.save()
+	
+	var rule_indices = []
+	var rule_array = []
+	for rule_i in self.rules:
+		var rule = self.rules[rule_i]
+		
+		rule_indices.append(rule_i)
+		rule_array.append(rule.pack())
+		
+	return [sym_data, rule_indices, rule_array]
+		
+static func from_data(data):
+	var new_sym = GrammarSymbol.new(data[2], data[3], data[4])
+	new_sym.id = data[0]
+	new_sym.text = data[1]
+	
+	return new_sym
+	
+static func from_packed(p):
+	var gs = from_data(p[0])
+		
+	return gs
+	
+func unpack_rules(p, symbol_map):	
+	var rule_indices = p[1]
+	var rule_array = p[2]
+	
+	for i in rule_array.size():
+		var rule_i = rule_indices[i]
+		var rule_packed = rule_array[i]
+		
+		# This adds the rule to the symbol automatically as well
+		GrammarRule.from_packed(rule_packed, self, symbol_map)
 	
 func serialize():
 	# Sizes
@@ -58,13 +96,6 @@ func serialize():
 	
 	return data
 	
-static func from_data(data):
-	var new_sym = GrammarSymbol.new(data[2], data[3], data[4])
-	new_sym.id = data[0]
-	new_sym.text=  data[1]
-	
-	return new_sym
-	
 func _init(_nr_of_verts,_faces,_terminal=true):
 	self.nr_of_vertices = _nr_of_verts
 	self.faces = _faces.duplicate(true)
@@ -78,15 +109,6 @@ func has_same_topology_as(other):
 func can_be_assigned_to(poly):
 	return self.nr_of_vertices == poly.vertices.size() and self.faces == poly.faces
 
-func create_polyhedron(vertices):
-	var newpoly = Polyhedron.new()
-	
-	newpoly.add_vertices(vertices)
-	newpoly.add_faces(self.faces)
-	newpoly.complete()
-	
-	return newpoly
-	
 func is_terminal():
 	return self.rules.size() == 0
 	

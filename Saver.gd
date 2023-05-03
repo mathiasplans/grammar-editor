@@ -87,6 +87,20 @@ func save_serialized_grammar():
 		
 	save_file(path, sg)
 	
+func save_grammar_resource():
+	# Get the path
+	var path = await self.get_new_path()
+	if path == null:
+		return
+		
+	# Add file end
+	
+	if not path.ends_with(".grammar"):
+		path += ".grammar"
+		
+	var gr = %Symbols.get_grammar_resource()
+	var msg = ResourceSaver.save(gr, path)
+	
 func save(newpath=false):
 	# AddSymbol save
 	var add_symbol_save = %AddSymbol.save()
@@ -210,4 +224,10 @@ func _input(event):
 				self.l()
 				
 			if event.keycode == KEY_B and event.ctrl_pressed:
-				self.save_serialized_grammar()
+				if event.shift_pressed:
+					self.save_grammar_resource()
+					
+				else:
+					self.save_serialized_grammar()
+				
+				

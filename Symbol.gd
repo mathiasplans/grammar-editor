@@ -11,8 +11,8 @@ var symbol
 
 func _ready():
 	self.shape = _symbols.get_default_shape(self.symbol)
-	self.poly = self.shape.get_polyhedron()
-	self.meshes = self.shape.get_meshes()
+	self.poly = GB.get_polyhedron(self.shape)
+	self.meshes = GB.get_meshes(self.shape)
 	
 	self.mesh_instances = []
 	for mesh in self.meshes:

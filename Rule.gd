@@ -79,8 +79,8 @@ func _init(shape, _index):
 	self.from_shape = shape
 	self.index = _index
 	self.rng = RandomNumberGenerator.new()
-	
-	self.from_shape_poly = self.from_shape.get_polyhedron()
+
+	self.from_shape_poly = GB.get_polyhedron(self.from_shape)
 	
 func is_empty():
 	return self.meshes.size() == 0

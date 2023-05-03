@@ -251,7 +251,7 @@ func get_from_shape_poly():
 func get_symbol_poly():
 	if self.current_symbol != null:
 		var shape = %Symbols.get_default_shape(self.current_symbol)
-		return shape.get_polyhedron()
+		return GB.get_polyhedron(shape)
 	return null
 	
 func get_symbol():
@@ -411,8 +411,8 @@ static func _add_random_color(mesh_instances):
 
 func _add_terminal(terminal_shape):
 	self._terminals.push_back(terminal_shape)
-	
-	var _meshes = terminal_shape.get_meshes()
+
+	var _meshes = GB.get_meshes(terminal_shape)
 	var mesh_instances = []
 	for mesh in _meshes:
 		var new_inst = MeshInstance3D.new()
@@ -444,7 +444,7 @@ func _refresh_shapes():
 		
 	# Add the new shape to the Tester
 	for shape in self._shapes:
-		var _meshes = shape.get_meshes()
+		var _meshes = GB.get_meshes(shape)
 		var mesh_instances = []
 		for mesh in _meshes:
 			var new_inst = MeshInstance3D.new()

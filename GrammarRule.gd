@@ -1,4 +1,6 @@
-extends Node
+@tool
+
+extends RefCounted
 class_name GrammarRule
 
 class VirtualVertex:
@@ -44,12 +46,23 @@ class InterpolateVertex:
 		var a = int(((1 << 28) - 1))
 		var val = int(((1 << 28) - 1) * self.coef)
 		p = p | int(((1 << 28) - 1) * self.coef) << 36
-		print("%f, %X, %X, %X, %X" % [self.coef, a, val, b, p])
 		return p
 		
 	func create_vertex(vertex_array):
 		var other_coef = 1 - self.coef
 		return vertex_array[self.from] * other_coef + vertex_array[self.to] * self.coef 
+		
+static func unpack_vv(p):
+	var from = p & 0xFFFF
+	var to = (p >> 16) & 0xFFFF
+	var type = (p >> 32) & 0xF
+	var coef = (p >> 36) & 0xFFFFFFF
+	
+	if type == VirtualVertex.FIRST:
+		return FirstVertex.new(from)
+		
+	elif type == VirtualVertex.INTERPOLATE:
+		return InterpolateVertex.new(from, to, coef)
 
 var symbol = null
 var vertex_counter = -1
@@ -58,6 +71,39 @@ var product_symbols = []
 var product_vertices = []
 
 var index = -1
+
+func save():
+	var vvs = []
+	for vv in self.virtual_vertices:
+		vvs.append(vv.pack())
+	
+	var prodsym = []
+	for ps in self.product_symbols:
+		prodsym.append(ps.text)
+	
+	return [vertex_counter, vvs, prodsym, product_vertices, index]
+	
+func l(data, symbol_map):
+	self.vertex_counter = data[0]
+	
+	self.virtual_vertices = []
+	for vv in data[1]:
+		self.virtual_vertices.append(unpack_vv(vv))
+		
+	self.product_symbols = []
+	for ps in data[2]:
+		self.product_symbols.append(symbol_map[ps])
+		
+	self.product_vertices = data[3]
+	
+func pack():
+	return self.save()
+	
+static func from_packed(p, symbol, symbol_map):
+	var gr = GrammarRule.new(p[4], symbol)
+	gr.l(p, symbol_map)
+	
+	return gr
 
 func serialize(symbol_id):
 	var data = PackedByteArray()

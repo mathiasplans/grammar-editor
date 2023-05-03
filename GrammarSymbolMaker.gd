@@ -66,7 +66,6 @@ func from_polyhedron(poly, _terminal=true):
 		for sym_str in self.symbols.keys():
 			var sym = self.symbols[sym_str]
 			if sym.has_same_topology_as(unique_symbol) and sym.terminal:
-				unique_symbol.free()
 				return sym
 	
 	# Name the symbol
@@ -117,11 +116,8 @@ func delete_symbol(symbol):
 	
 	self.symbols.erase(symbol.text)
 	self.symbols_id.erase(symbol.id)
-	var shape = self.default_shape[symbol]
-	shape.free()
 	self.default_shape.erase(symbol)
 	self.buttons.erase(symbol)
-	symbol.free()
 	
 func get_symbol(text):
 	if self.symbols.has(text):
@@ -215,3 +211,17 @@ func serialize_grammar():
 			cursor += 4 + pr_size
 			
 	return data
+
+func get_grammar_resource() -> Grammar:
+	var syms : Array[GrammarSymbol] = []
+	var shps : Array[GrammarShape] = []
+	
+	for sym_text in self.symbols:
+		var sym = self.symbols[sym_text]
+		syms.append(sym)
+		shps.append(self.default_shape[sym])
+		
+	var grammar_resource = Grammar.new()
+	grammar_resource.set_symbols_shapes(syms, shps)
+	
+	return grammar_resource
