@@ -60,9 +60,7 @@ func from_polyhedron(poly, _terminal=true):
 	
 	# If there is a topologically equivalent symbol and
 	# not terminal, reuse instead. Only terminal symbols can be reused
-	if _terminal:
-		var _the_script = load("res://GrammarSymbol.gd")
-	
+	if _terminal:	
 		for sym_str in self.symbols.keys():
 			var sym = self.symbols[sym_str]
 			if sym.has_same_topology_as(unique_symbol) and sym.terminal:

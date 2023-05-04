@@ -366,6 +366,8 @@ var _terminal_meshes = []
 
 var _initial_shape
 
+var rng = RandomNumberGenerator.new()
+
 func _ready():
 	self.apply_rule.button_down.connect(self._on_apply_rule_press)
 	self.export_button.button_down.connect(self._on_export)
@@ -410,9 +412,6 @@ func _clear_terminals():
 	for tm in self._terminal_meshes:
 		tm.queue_free()
 		
-	for t in self._terminals:
-		t.free()
-		
 	self._terminal_meshes = []
 	self._terminals = []
 
@@ -447,7 +446,7 @@ func _on_apply_rule_press():
 		old_shape_names.append(shape.symbol.text)
 		
 		# Get the rule
-		var grammar_rule = shape.symbol.select_rule()
+		var grammar_rule = shape.symbol.select_rule(rng)
 		
 		# No rules, keep the shape
 		if grammar_rule == null:
