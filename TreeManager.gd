@@ -356,7 +356,7 @@ func _on_polyhedron_deselect(poly, rule):
 #    - this new index should also be added to the global mapper
 #  3. Repeat on the child, with parents global indices as the base for the position
 #  4. At leaves, add productions
-func _get_grammar_rule(item, parent_global_indices, rule_object):
+func _get_grammar_rule(item, parent_global_indices, rule_object : GrammarRule):
 	var tm = item.get_metadata(TREE_META)
 	# If epsilon, do nothing
 	if tm.epsilon:
