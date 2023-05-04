@@ -39,7 +39,7 @@ func save_meshes_as_stl(meshes):
 	# Get the path
 	var path = await self.get_new_path()
 	if path == null:
-		return
+		return false
 	
 	# Convert to STL format
 	var mesh_name = "__mesh_name"
@@ -77,21 +77,25 @@ func save_meshes_as_stl(meshes):
 		
 	save_file(path, stl.to_utf8_buffer())
 	
+	return true
+	
 func save_serialized_grammar():
 	# Get the path
 	var path = await self.get_new_path()
 	if path == null:
-		return
+		return false
 		
 	var sg = %Symbols.serialize_grammar()
 		
 	save_file(path, sg)
 	
+	return true
+	
 func save_grammar_resource():
 	# Get the path
 	var path = await self.get_new_path()
 	if path == null:
-		return
+		return false
 		
 	# Add file end
 	
@@ -100,6 +104,8 @@ func save_grammar_resource():
 		
 	var gr = %Symbols.get_grammar_resource()
 	var msg = ResourceSaver.save(gr, path)
+	
+	return true
 	
 func save(newpath=false):
 	# AddSymbol save
@@ -123,6 +129,8 @@ func save(newpath=false):
 		
 		JavaScriptBridge.download_buffer(packed, "save.bin")
 		
+		return true
+		
 	else:
 		var need_a_newpath = save_path == null or newpath
 		var proc = true
@@ -134,6 +142,10 @@ func save(newpath=false):
 			self.save_path = self.user_path
 			var file = FileAccess.open(self.save_path, FileAccess.WRITE)
 			file.store_var(saved)
+			
+			return true
+			
+		return false
 
 func l():
 	var saved
@@ -158,7 +170,7 @@ func l():
 			saved = file.get_var()
 		
 		else:
-			return
+			return false
 		
 	%SVC.visible = false
 	
@@ -176,6 +188,8 @@ func l():
 	%RuleManager.l(saved[2])
 	
 	%SVC.visible = true
+	
+	return true
 	
 func _on_file_selected(path):
 	self.user_path = path
@@ -201,7 +215,25 @@ var file_load_cb = JavaScriptBridge.create_callback(self._file_load_cb_fun)
 func _on_cancle():
 	self.proceed = false
 	self.finished_operation.emit()
-
+		
+func _on_save(shifted):
+	if await self.save(shifted):
+		self._hide_project()
+	
+func _on_load():
+	if await self.l():
+		self._hide_project()
+	
+func _on_export():
+	if await self.save_grammar_resource():
+		self._hide_project()
+	
+func _toggle_project():
+	$Project.visible = not $Project.visible
+	
+func _hide_project():
+	$Project.visible = false
+	
 func _ready():
 	if OS.has_feature("web"):
 		var window = JavaScriptBridge.get_interface("window")
@@ -213,21 +245,27 @@ func _ready():
 		
 		$SaveFile.canceled.connect(self._on_cancle)
 		$LoadFile.canceled.connect(self._on_cancle)
+
+	# Project window
+	%RuleOpt/ProjectButton.pressed.connect(self._toggle_project)
+	$Project.close_requested.connect(self._toggle_project)
+
+	# Connect functionality buttons
+	%SaveButton.pressed.connect(self._on_save.bind(false))
+	%SaveAsButton.pressed.connect(self._on_save.bind(true))
+	%LoadButton.pressed.connect(self._on_load)
+	%ExportButton.pressed.connect(self._on_export)
 		
 func _input(event):
 	if event is InputEventKey:
 		if event.pressed:
 			if event.keycode == KEY_S and event.ctrl_pressed:
-				self.save(event.shift_pressed)
+				self._on_save(event.shift_pressed)
 				
 			if event.keycode == KEY_L and event.ctrl_pressed:
-				self.l()
+				self._on_load()
 				
 			if event.keycode == KEY_B and event.ctrl_pressed:
-				if event.shift_pressed:
-					self.save_grammar_resource()
-					
-				else:
-					self.save_serialized_grammar()
+				self._on_export()
 				
 				

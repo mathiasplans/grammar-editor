@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://b05ly8tkkyqbc"]
+[gd_scene load_steps=22 format=3 uid="uid://b05ly8tkkyqbc"]
 
 [ext_resource type="Script" path="res://Root.gd" id="1"]
 [ext_resource type="Script" path="res://Saver.gd" id="1_43r8s"]
@@ -8,25 +8,6 @@
 [ext_resource type="Script" path="res://AnchorManager.gd" id="5"]
 [ext_resource type="Script" path="res://GrammarSymbolMaker.gd" id="6_j4m57"]
 [ext_resource type="Script" path="res://Cursors.gd" id="6_miobu"]
-
-[sub_resource type="GDScript" id="GDScript_4jyo7"]
-resource_name = "CompileButton"
-script/source = "extends Button
-
-const compiled_icon = preload(\"res://icons/compiled.png\")
-const not_compiled_icon = preload(\"res://icons/not_compiled.png\")
-
-func _ready():
-	%RuleManager.rule_edited.connect(_on_rule_edited)
-	%CompiledStatus.texture = not_compiled_icon
-
-func _pressed():
-	%CompiledStatus.texture = self.compiled_icon
-
-func _on_rule_edited(rule):
-	if rule == %RuleManager.current_rule:
-		%CompiledStatus.texture = not_compiled_icon
-"
 
 [sub_resource type="GDScript" id="GDScript_wcrj7"]
 script/source = "extends SpinBox
@@ -505,6 +486,9 @@ var explorer_vis = false
 
 func _on_visibility_changed():
 	if not self.active():
+		# Compile the grammar
+		%RuleManager.compile_all()
+		
 		var root_poly = %RuleManager.get_symbol_poly()
 		
 		var new_shape = GrammarShape.new(%RuleManager.get_symbol(), root_poly.vertices)
@@ -579,7 +563,6 @@ class_name Editor
 
 var rng = RandomNumberGenerator.new()
 
-@onready var compile_button = %RuleOpt/Compile/CompileButton
 @onready var global_cut = %ToolOpt/FaceCutOpt/GlobalCut
 
 func poly_to_meshes(poly):
@@ -588,12 +571,10 @@ func poly_to_meshes(poly):
 func draw_rule():
 	if %RuleManager.current_rule != null:
 		$Meshes.add_child(%RuleManager.current_rule)
-		self.compile_button.disabled = false
 		%ToolInfo.visible = true
 		%TreeParent.visible = true
 		
 	else:
-		self.compile_button.disabled = true
 		%ToolInfo.visible = false
 		%TreeParent.visible = false
 		
@@ -602,13 +583,8 @@ func draw_symbol():
 		%ToolInfo.visible = false
 		%TreeParent.visible = false
 	
-func go_blank():
-	self.compile_button.disabled = true
-	
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	self.compile_button.button_down.connect(_on_compile_button_press)
-	
 	# Anchor manager
 	$AnchorManager.polyhedron_reordered.connect(self._on_poly_reorder)
 	
@@ -617,8 +593,6 @@ func _ready():
 	%RuleManager.cut_created.connect(self._on_create_cut)
 	
 	$Cursors.create_cut.connect(self._on_cut_complete)
-	
-	self.go_blank()
 	
 # Called when an event happens
 func _input(event):
@@ -698,9 +672,6 @@ func _on_cut_complete(cut_planes, _poly):
 	# Hide the cut
 	for cut_plane in cut_planes:
 		cut_plane.visible = false
-	
-func _on_compile_button_press():
-	var _grammar_rule = %RuleManager.compile_all()
 
 func _on_poly_reorder(poly, new_order):
 	# Remove old meshes
@@ -949,6 +920,72 @@ ok_button_text = "Open"
 file_mode = 0
 access = 2
 
+[node name="Project" type="Window" parent="Persistance"]
+title = "Project"
+position = Vector2i(200, 200)
+size = Vector2i(180, 159)
+visible = false
+wrap_controls = true
+
+[node name="MarginContainer" type="MarginContainer" parent="Persistance/Project"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 80.0
+offset_bottom = 59.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="GridContainer" type="GridContainer" parent="Persistance/Project/MarginContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 5
+columns = 2
+
+[node name="SaveButton" type="Button" parent="Persistance/Project/MarginContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save"
+
+[node name="Label" type="Label" parent="Persistance/Project/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "Ctrl-S"
+vertical_alignment = 1
+
+[node name="SaveAsButton" type="Button" parent="Persistance/Project/MarginContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save As"
+
+[node name="Label2" type="Label" parent="Persistance/Project/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "Ctrl-Shift-S"
+vertical_alignment = 1
+
+[node name="LoadButton" type="Button" parent="Persistance/Project/MarginContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Load"
+
+[node name="Label3" type="Label" parent="Persistance/Project/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "Ctrl-L"
+vertical_alignment = 1
+
+[node name="ExportButton" type="Button" parent="Persistance/Project/MarginContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Export"
+
+[node name="Label4" type="Label" parent="Persistance/Project/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "Ctrl-B"
+vertical_alignment = 1
+
 [node name="HSplitContainer" type="HSplitContainer" parent="."]
 custom_minimum_size = Vector2(1024, 600)
 layout_mode = 0
@@ -974,28 +1011,15 @@ script = ExtResource("1_ac0rl")
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Compile" type="GridContainer" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt"]
-layout_mode = 2
-columns = 2
-
-[node name="CompileButton" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt/Compile"]
-layout_mode = 2
-tooltip_text = "Compile all the symbols and rules"
-text = "Compile"
-icon_alignment = 2
-script = SubResource("GDScript_4jyo7")
-
-[node name="CompiledStatus" type="TextureRect" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt/Compile"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(16, 16)
-layout_mode = 2
-stretch_mode = 5
-
 [node name="TestGrammar" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt"]
 layout_mode = 2
 tooltip_text = "Test the grammar rules on the currently selected symbol"
 toggle_mode = true
 text = "Test"
+
+[node name="ProjectButton" type="Button" parent="HSplitContainer/Left/RuleEditor/ToolOpt/RuleOpt"]
+layout_mode = 2
+text = "Project"
 
 [node name="FaceCutOpt" type="GridContainer" parent="HSplitContainer/Left/RuleEditor/ToolOpt"]
 visible = false
