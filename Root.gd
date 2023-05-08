@@ -33,9 +33,10 @@ func _get_cropped_texture(texture : Texture, region : Rect2) -> AtlasTexture:
 	atlas_texture.set_region(region)
 	return atlas_texture
 	
-func presentation_rotation():
+func presentation_rotation(lower=false):
 	self.look_at(Vector3(1, 0, -1))
-	self.global_rotate(Vector3(1, 0, 0), PI/4)
+	var coef = int(lower) + 1
+	self.global_rotate(Vector3(1, 0, 0), PI/4 / coef)
 	
 func capture_screen():
 	var verts
@@ -156,7 +157,7 @@ func _input(event):
 	if event is InputEventKey:
 		if event.pressed:
 			if event.keycode == KEY_X:
-				self.presentation_rotation()
+				self.presentation_rotation(event.shift_pressed)
 				
 			if event.keycode == KEY_P and event.ctrl_pressed:
 				var img = self.capture_screen()

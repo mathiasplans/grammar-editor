@@ -69,21 +69,12 @@ func save():
 	return data
 	
 func l(data):
-	var indices = {}
 	for sym_key in data:
 		var sym_text = sym_key[0]
+		var sym_index = sym_key[1]
 		var symbol = %Symbols.get_symbol(sym_text)
 		
-		var index
-		if indices.has(symbol):
-			index = indices[symbol]
-			indices[symbol] = index + 1
-			
-		else:
-			index = 0
-			indices[symbol] = 1
-		
-		self.rules[[symbol, index]].l(data[sym_key])
+		self.rules[[symbol, sym_index]].l(data[sym_key])
 		
 	$TreeManager.refresh_all()
 	
@@ -271,6 +262,7 @@ func get_pobj(poly, rule=self.current_rule):
 	
 func set_visibility(poly, vis, rule=self.current_rule):
 	rule.set_visibility(poly, vis)
+	self.visaul_changed(rule)
 		
 func set_transparency(poly, t, rule=self.current_rule):
 	rule.set_transparency(poly, t)
@@ -346,7 +338,8 @@ func get_corners(transform, rule=self.current_rule):
 		return rule.get_corners(transform)
 		
 	elif self.current_symbol != null:
-		return %Symbols.get_default_shape(self.current_symbol).get_vertices(transform)
+		var sh = %Symbols.get_default_shape(self.current_symbol)
+		return GB.get_vertices(sh, transform)
 		
 	else:
 		return null
@@ -507,9 +500,6 @@ func _on_visibility_changed():
 		self._initial_shape = new_shape
 		
 	else:
-		for shape in self._shapes:
-			shape.free()
-		
 		self._shapes = []
 		
 		self._refresh_shapes()

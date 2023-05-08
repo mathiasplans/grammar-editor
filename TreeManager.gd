@@ -57,7 +57,8 @@ class TreeMeta:
 		return [poly_save, hidden, epsilon, leaf, other_hidden, cut_type, parent_indices, constructions, rotations, symbol]
 		
 	func deserialize(ser):
-		self.poly = Polyhedron.from_data(ser[0])
+		var new_poly = Polyhedron.from_data(ser[0])
+		self.poly = new_poly
 		self.hidden = ser[1]
 		self.epsilon = ser[2]
 		self.leaf = ser[3]
@@ -85,20 +86,30 @@ static func serialize_tree(item, store):
 	store.append(false)
 	
 static func deserialize_tree(tree, parent, store, _cursor=0):
-	while true:
+	var current = parent
+	while _cursor < store.size():
 		var val = store[_cursor]
 		if typeof(val) == TYPE_BOOL:
-			if val:
-				_cursor = deserialize_tree(tree, parent, store, _cursor + 1)
+			print(val)
+			var last_val = null
+			if _cursor > 0:
+				last_val = store[_cursor - 1]
 				
-			else:
+			if val:
+				_cursor = deserialize_tree(tree, current, store, _cursor + 1)
+				
+			elif typeof(last_val) == TYPE_BOOL and last_val == false:
 				break
 				
+			else:
+				_cursor += 1
+				
 		else:
-			parent = tree.create_item(parent)
+			print(val.hash())
+			current = tree.create_item(parent)
 			var tm = TreeMeta.new()
 			tm.deserialize(val)
-			_treeitem_setup(parent, tm, "")
+			_treeitem_setup(current, tm, "")
 			_cursor += 1
 				
 	return _cursor + 1
@@ -229,29 +240,29 @@ func add_rotation(poly, rotation):
 	
 	self.tree_edited.emit()
 
-func _treeitem_set_visibility(item):
+func _treeitem_set_visibility(item, rule=%RuleManager.current_rule):
 	var tm = item.get_metadata(TREE_META)
 	if tm.leaf:
 		var state = tm.hidden
 		
 		var t = false
 		if tm.epsilon:
-			%RuleManager.set_visibility(tm.poly, false)
+			%RuleManager.set_visibility(tm.poly, false, rule)
 			
 		elif state == VIS_XRAY:
 			t = true
-			%RuleManager.set_visibility(tm.poly, true)
+			%RuleManager.set_visibility(tm.poly, true, rule)
 			
 		elif state == VIS_VISIBLE:
-			%RuleManager.set_visibility(tm.poly, true)
+			%RuleManager.set_visibility(tm.poly, true, rule)
 			
 		if t:
-			%RuleManager.set_transparency(tm.poly, 0.2)
-			%RuleManager.set_collision(tm.poly, false)
+			%RuleManager.set_transparency(tm.poly, 0.2, rule)
+			%RuleManager.set_collision(tm.poly, false, rule)
 			
 		else:
-			%RuleManager.set_transparency(tm.poly, 1.0)
-			%RuleManager.set_collision(tm.poly, true)
+			%RuleManager.set_transparency(tm.poly, 1.0, rule)
+			%RuleManager.set_collision(tm.poly, true, rule)
 
 func _treeitem_visible(item, vis):
 	var tm = item.get_metadata(TREE_META)
@@ -585,12 +596,13 @@ func refresh(item=self.current_tree.get_root()):
 	var tm = item.get_metadata(TREE_META)
 	if not tm.leaf:
 		self._remove_leafness_item(item)
-		
-	self._hidden_button_change(item, tm)
-	self._treeitem_set_visibility(item)
+	
 	
 	var tree = item.get_tree()
 	var rule = self.tree_to_rule[tree]
+	
+	self._hidden_button_change(item, tm)
+	self._treeitem_set_visibility(item, rule)
 	self.anchor_update(item, tm.symbol, rule)
 	
 	for child in item.get_children():

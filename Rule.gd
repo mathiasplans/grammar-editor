@@ -58,6 +58,7 @@ func l(data):
 	self.meshes = {}
 	
 	# Load the tree
+	print(data[0].size())
 	TreeManager.deserialize_tree(self.split_tree, null, data[0], 0)
 	self.split_root = self.split_tree.get_root()
 	
