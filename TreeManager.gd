@@ -74,7 +74,7 @@ static func serialize_tree(item, store):
 	var tm = item.get_metadata(TREE_META)
 	
 	# Store current
-	store.append(tm.serialize())
+	store.append([tm.serialize(), item.get_text(TREE_SYMBOL)])
 	
 	var kids = item.get_children()
 	
@@ -90,7 +90,6 @@ static func deserialize_tree(tree, parent, store, _cursor=0):
 	while _cursor < store.size():
 		var val = store[_cursor]
 		if typeof(val) == TYPE_BOOL:
-			print(val)
 			var last_val = null
 			if _cursor > 0:
 				last_val = store[_cursor - 1]
@@ -105,11 +104,10 @@ static func deserialize_tree(tree, parent, store, _cursor=0):
 				_cursor += 1
 				
 		else:
-			print(val.hash())
 			current = tree.create_item(parent)
 			var tm = TreeMeta.new()
-			tm.deserialize(val)
-			_treeitem_setup(current, tm, "")
+			tm.deserialize(val[0])
+			_treeitem_setup(current, tm, val[1])
 			_cursor += 1
 				
 	return _cursor + 1
@@ -117,7 +115,7 @@ static func deserialize_tree(tree, parent, store, _cursor=0):
 static func _add_epsilon_button(item):
 	item.add_button(TREE_BUTTONS, button_epsilon_not, BUTTON_EPSILON, false, "Convert this shape into an empty shape")
 
-static func _treeitem_setup(item, metadata, _text):
+static func _treeitem_setup(item, metadata, symbol=null):
 	_add_epsilon_button(item)
 	item.add_button(TREE_BUTTONS, button_visible_tex, BUTTON_HIDE, false, "Change the visibility of this shape")
 	
@@ -127,6 +125,9 @@ static func _treeitem_setup(item, metadata, _text):
 	item.set_icon(0, shape_icon)
 	
 	item.set_editable(TREE_SYMBOL, true)
+	
+	if symbol != null:
+		item.set_text(TREE_SYMBOL, symbol)
 	
 # Called when the node enters the scene tree for the first time.
 func create_tree(rule, poly):
@@ -144,7 +145,7 @@ func create_tree(rule, poly):
 
 	rule.poly_to_treeitem[poly] = rule.split_root
 
-	_treeitem_setup(rule.split_root, tm, "A")
+	_treeitem_setup(rule.split_root, tm)
 	
 	# Connect the signals
 	rule.split_tree.button_clicked.connect(_on_tree_button)
@@ -198,7 +199,7 @@ func create_child_item(cut, parent_poly, text, sym=null):
 	tm.parent_indices = pos
 	tm.constructions = construction
 	
-	_treeitem_setup(new_treeitem, tm, text)
+	_treeitem_setup(new_treeitem, tm)
 	
 	%RuleManager.set_treeitem(poly, new_treeitem)
 	%RuleManager.set_leafness(poly)
