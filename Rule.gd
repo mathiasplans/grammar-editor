@@ -38,9 +38,6 @@ const contouredAlphaShader = preload("res://shaders/contouredface_alpha.gdshader
 # * index
 # * anchors (keys)
 
-func color_gen():
-	return Color(self.rng.randf_range(0.5, 0.9), self.rng.randf_range(0.5, 0.9), self.rng.randf_range(0.5, 0.9), 1.0)
-
 func save():
 	var tree_store = []
 	TreeManager.serialize_tree(split_root, tree_store)
@@ -72,7 +69,7 @@ func l(data):
 	for poly in self.poly_to_treeitem:
 		if self.leaf_polys.has(poly):
 			self.add_meshes(poly)
-		self.colors[poly] = color_gen() 
+		self.colors[poly] = ColorManager.color_gen() 
 	
 
 func _init(shape, _index):
@@ -146,10 +143,8 @@ func add_meshes(poly):
 	for face in faces:
 		face.cut_created.connect(_on_cut_created)
 	
-	var new_color = self.color_gen()
-	var newMat = self.contouredMat.duplicate()
-	newMat.set_shader_parameter("albedo_color", new_color)
-	self.colors[poly] = new_color
+	var newMat = ColorManager.get_contoured_mat()
+	self.colors[poly] = newMat.get_shader_parameter("albedo_color")
 	
 	var pobj = self.get_pobj(poly)
 	for face in faces:

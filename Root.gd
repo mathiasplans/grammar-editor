@@ -38,9 +38,25 @@ func presentation_rotation(lower=false):
 	var coef = int(lower) + 1
 	self.global_rotate(Vector3(1, 0, 0), PI/4 / coef)
 	
+func capture_mega_screen():
+	var win = self.get_window()
+	var ws = win.size
+	win.size = Vector2i(4000, 4000)
+	for i in 5:
+		await self.get_tree().process_frame
+		
+	var img = await self.capture_screen()
+		
+	win.size = ws
+	for i in 5:
+		await self.get_tree().process_frame
+		
+	return img
+	
 func capture_screen():
 	var verts
-	
+	var vp = self.get_viewport()
+
 	# Get the vertices from Tester
 	if $Tester.active():
 		verts = $Tester.get_corners()
@@ -64,7 +80,7 @@ func capture_screen():
 		min_coord.x = min(min_coord.x, sp.x)
 		min_coord.y = min(min_coord.y, sp.y)
 		
-	const margin = 20
+	const margin = 100
 	const margin_vec = Vector2(margin, margin)
 	var loc = min_coord - margin_vec
 	var size = max_coord - min_coord + 2*margin_vec
@@ -72,19 +88,21 @@ func capture_screen():
 	var region = Rect2(loc, size)
 	
 	# Get the texture of the viewport
-	var vp_tex = self.get_viewport().get_texture()
+	await RenderingServer.frame_post_draw
+	var vp_tex = vp.get_texture()
 	
 	# Cropped texture
 	var vp_tex_cropped = _get_cropped_texture(vp_tex, region)
 	
 	# Save the texture to a file
 	var img = vp_tex_cropped.get_image()
+	
 	return img
 	
 func save_image(img: Image):
 	img.save_png("user://capture_" + Time.get_datetime_string_from_system().replace(":", "") + ".png")
 
-func capture_rule():
+func capture_rule(mega):
 	# Check if a rule is selected
 	if not %RuleManager.has_active_rule():
 		return
@@ -93,15 +111,26 @@ func capture_rule():
 	var rule_index = %RuleManager.get_rule_index()
 	
 	# Capture the rule
-	var rule_image = self.capture_screen()
+	var rule_image
+	if mega:
+		rule_image = await self.capture_mega_screen()
+		
+	else:
+		rule_image = await self.capture_screen()
 	
 	# Change to symbol
 	%RuleManager.set_to_symbol(symbol)
-	await self.get_tree( ).process_frame # Update the rotation of the symbol
+	for i in 10:
+		await self.get_tree().process_frame # Update the rotation of the symbol
 	RenderingServer.force_draw()        # TODO: use ViewPort.force_draw when it is implemented
 	
 	# Capture the symbol
-	var symbol_image = self.capture_screen()
+	var symbol_image
+	if mega:
+		symbol_image = await self.capture_mega_screen()
+		
+	else:
+		symbol_image = await self.capture_screen()
 	
 	# Change back to rule
 	%RuleManager.set_to_rule(symbol, rule_index)
@@ -160,13 +189,18 @@ func _input(event):
 				self.presentation_rotation(event.shift_pressed)
 				
 			if event.keycode == KEY_P and event.ctrl_pressed:
-				var img = self.capture_screen()
+				var img
+				if event.shift_pressed:
+					img = await self.capture_mega_screen()
+					
+				else:
+					img = await self.capture_screen()
+					
 				self.save_image(img)
 				
 			if event.keycode == KEY_O and event.ctrl_pressed:
-				var img = await self.capture_rule()
+				var img = await self.capture_rule(event.shift_pressed)
 				self.save_image(img)
-					
 
 func _on_mode_change(_mode, _old_mode):
 	if _mode == _old_mode:

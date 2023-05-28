@@ -144,7 +144,7 @@ static func brep_to_meshes_cont(points, faces):
 		var st = SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
 		brep_to_meshes(new_points, [contour], null, st)
-		var contour_shade = Color(0.8, 0.8, 0.8, 1)
+		var contour_shade = Color(0.7, 0.65, 0.7, 1)
 		brep_to_meshes(new_points, contour_faces, null, st, contour_shade)
 		
 		var mesh = st.commit()

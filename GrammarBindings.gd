@@ -3,6 +3,9 @@ class_name GB
 static func get_meshes(shape: GrammarShape):
 	return Geom.brep_to_meshes(shape.vertices, shape.symbol.faces)
 	
+static func get_contoured_meshes(shape: GrammarShape):
+	return Geom.brep_to_meshes_cont(shape.vertices, shape.symbol.faces)
+	
 static func get_polyhedron(shape: GrammarShape):
 	return GB.create_polyhedron(shape.symbol, shape.vertices)	
 

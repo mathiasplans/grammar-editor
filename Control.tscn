@@ -373,22 +373,15 @@ func _input(event):
 					self._on_apply_rule_press()
 
 static func _add_random_color(mesh_instances):
-	var rng = RandomNumberGenerator.new()
-	rng.randomize()
-	
-	# Set color
-	var col = Color(rng.randf_range(0.5, 0.9), rng.randf_range(0.5, 0.9), rng.randf_range(0.7, 0.9), 1.0)
-	var mat = StandardMaterial3D.new()
-	mat.albedo_color = col
-			
+	var newMat = ColorManager.get_contoured_mat()
 	for mesh_instance in mesh_instances:
-		mesh_instance.set_surface_override_material(0, mat)
+		mesh_instance.set_surface_override_material(0, newMat)
 
 
 func _add_terminal(terminal_shape):
 	self._terminals.push_back(terminal_shape)
 
-	var _meshes = GB.get_meshes(terminal_shape)
+	var _meshes = GB.get_contoured_meshes(terminal_shape)
 	var mesh_instances = []
 	for mesh in _meshes:
 		var new_inst = MeshInstance3D.new()
@@ -417,7 +410,7 @@ func _refresh_shapes():
 		
 	# Add the new shape to the Tester
 	for shape in self._shapes:
-		var _meshes = GB.get_meshes(shape)
+		var _meshes = GB.get_contoured_meshes(shape)
 		var mesh_instances = []
 		for mesh in _meshes:
 			var new_inst = MeshInstance3D.new()
@@ -1109,6 +1102,7 @@ world_3d = SubResource("World3D_xikwn")
 transparent_bg = true
 handle_input_locally = false
 msaa_3d = 3
+scaling_3d_scale = 2.0
 physics_object_picking = true
 size = Vector2i(1152, 356)
 render_target_update_mode = 4
