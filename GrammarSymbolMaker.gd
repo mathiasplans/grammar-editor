@@ -211,6 +211,9 @@ func serialize_grammar():
 	return data
 
 func get_grammar_resource() -> Grammar:
+	# Compile the grammar
+	%RuleManager.compile_all()
+	
 	var syms : Array[GrammarSymbol] = []
 	var shps : Array[GrammarShape] = []
 	
